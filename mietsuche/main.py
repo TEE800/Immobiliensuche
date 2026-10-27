@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import logging
 import random
+import sys
 import threading
 import time
 
@@ -87,8 +88,13 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--test-telegram", action="store_true", help="Telegram-Testnachricht senden")
     args = parser.parse_args(argv)
 
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     config = load_config(args.config)
+    if sys.stderr is None:
+        # Unter Windows mit pythonw (Autostart) gibt es keine Konsole.
+        config.database.parent.mkdir(parents=True, exist_ok=True)
+        log_file = open(config.database.parent / "mietsuche.log", "a", encoding="utf-8", buffering=1)
+        sys.stdout = sys.stderr = log_file
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
     if args.test_telegram:
         Telegram(config.telegram_token, config.telegram_chat_id).send_text(

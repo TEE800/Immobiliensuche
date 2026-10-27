@@ -14,7 +14,22 @@ die Anfrage von Hand.
 | 1 | Portale (ImmoScout24, Immowelt, Kleinanzeigen, Ohne-Makler, SAGA, Genossenschaften) | offen |
 | 2 | Push-Nachrichten (App, optional Telegram) | fertig |
 | 3 | Übersichts-App | fertig |
-| 4 | Dauerbetrieb auf eigenem Server (Docker + Caddy) | vorbereitet |
+| 4 | Dauerbetrieb auf Windows-Laptop oder eigenem Server (Docker + Caddy) | vorbereitet |
+
+## Windows-Laptop
+
+In PowerShell (Startmenü → „PowerShell“) einfügen:
+
+```powershell
+irm https://raw.githubusercontent.com/TEE800/Immobiliensuche/main/deploy/windows/install.ps1 | iex
+```
+
+Das installiert bei Bedarf Python, legt alles unter
+`%LOCALAPPDATA%\Mietsuche` ab, startet die Suche bei jeder Anmeldung
+automatisch im Hintergrund und schaltet den Ruhezustand im Netzbetrieb ab.
+Die Übersicht läuft unter http://localhost:8080. Erneut ausführen
+aktualisiert auf die neueste Version; Einstellungen und Anschreiben in
+`%LOCALAPPDATA%\Mietsuche\data` bleiben erhalten.
 
 ## Server (Hetzner)
 
