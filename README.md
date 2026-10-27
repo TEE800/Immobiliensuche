@@ -11,7 +11,8 @@ die Anfrage von Hand.
 | Schritt | Inhalt | Stand |
 |---|---|---|
 | 1 | Kriterien, Filter, Datenbank, Anschreiben | fertig |
-| 1 | Portale (ImmoScout24, Immowelt, Kleinanzeigen, Ohne-Makler, SAGA, Genossenschaften) | offen |
+| 1 | Portale Kleinanzeigen und Ohne-Makler | fertig |
+| 1 | ImmoScout24, Immowelt, SAGA, Genossenschaften | offen, siehe unten |
 | 2 | Push-Nachrichten (App, optional Telegram) | fertig |
 | 3 | Übersichts-App | fertig |
 | 4 | Dauerbetrieb auf Windows-Laptop oder eigenem Server (Docker + Caddy) | vorbereitet |
@@ -105,6 +106,21 @@ python -m mietsuche --loop      # dauerhaft, alle ~7 Minuten, ohne App
 python -m mietsuche --serve     # App + dauerhafte Suche
 ```
 
+## Portale
+
+| Portal | Stand |
+|---|---|
+| Kleinanzeigen | Hamburg, Schenefeld, Halstenbek; Wohnungen und Häuser ab Mindest-Zimmerzahl. Gesuche und Tauschwohnungen werden übersprungen. |
+| Ohne-Makler | Hamburg, Schenefeld, Halstenbek; Wohnungen und Häuser |
+| ImmoScout24, Immowelt | sperren automatische Abrufe (Bot-Schutz), deshalb nicht angebunden |
+| SAGA | Seite ist von Servern außerhalb Deutschlands gesperrt, noch nicht getestet |
+
+Zuerst wird die Trefferliste gelesen. Nur Anzeigen, die danach noch passen
+können (Ort, Zimmer, grobe Miete), werden einzeln geöffnet, um Nebenkosten,
+Haustiere, Garten und Balkon zu lesen. Zwischen zwei Abrufen liegen einige
+Sekunden Pause. Neue Portale sind Unterklassen von `mietsuche.sources.Source`
+mit `@register` und optional `details()`.
+
 ## Kriterien
 
 Jede Anzeige wird in sechs Punkten geprüft: Objektart, Ort, Zimmer, Miete,
@@ -117,6 +133,9 @@ mit ❓, damit man gezielt nachfragen kann.
   `haustiere.unbekannt_zulassen`.
 - **Garten/Balkon:** eigener Garten, Gartenanteil, Terrasse, Dachterrasse
   oder Balkon ab `balkon_min_qm`. Gemeinschaftsgärten zählen nicht.
+  „Garten/-mitnutzung“ (Kleinanzeigen) oder „Garten“ in der Ausstattung
+  einer Wohnung (Ohne-Makler) ist `unklar`, weil das auch der Hof für alle
+  sein kann.
 - **Miete:** Warmmiete bis `warmmiete_max`. Ist nur die Kaltmiete bekannt,
   zählt `kaltmiete_max_wenn_warm_unbekannt`.
 

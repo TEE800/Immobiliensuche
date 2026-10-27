@@ -197,3 +197,25 @@ def test_failed_source_does_not_stop_others(tmp_path):
     storage = Storage(config.database)
     notifier = FakeNotifier()
     assert run_once(config, storage, [Broken(), FakeSource([make()])], [notifier]) == 1
+
+
+def test_details_loaded_only_for_promising_listings(tmp_path):
+    class Detailed(FakeSource):
+        loaded: list = []
+
+        def details(self, listing):
+            self.loaded.append(listing.external_id)
+            if listing.external_id == "3":
+                raise RuntimeError("Seite nicht erreichbar")
+            return listing
+
+    (tmp_path / "config.yaml").write_text("datenbank: db.sqlite\n")
+    config = load_config(tmp_path / "config.yaml")
+    storage = Storage(config.database)
+    source = Detailed([make(), make(external_id="2", rooms=1), make(external_id="3")])
+    run_once(config, storage, [source], [FakeNotifier()])
+    assert source.loaded == ["1", "3"]
+    # Fehlgeschlagene Detailseite wird nicht gespeichert und beim nächsten Lauf erneut versucht.
+    assert not storage.seen("test:3")
+    run_once(config, storage, [source], [FakeNotifier()])
+    assert source.loaded == ["1", "3", "3"]

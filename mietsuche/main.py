@@ -10,7 +10,7 @@ import threading
 import time
 
 from .config import Config, load_config
-from .filters import evaluate
+from .filters import evaluate, worth_details
 from .letter import load_template, render_letter
 from .sources import REGISTRY, Source
 from .storage import Storage
@@ -37,6 +37,13 @@ def run_once(config: Config, storage: Storage, sources: list[Source], notifiers:
         for listing in listings:
             if storage.seen(listing.key):
                 continue
+            if worth_details(listing, config.criteria):
+                try:
+                    listing = source.details(listing)
+                except Exception as e:
+                    # Nicht speichern, damit es beim nächsten Lauf erneut versucht wird.
+                    log.warning("%s: Detailseite %s nicht lesbar: %s", source.name, listing.url, e)
+                    continue
             verdict = evaluate(listing, config.criteria)
             letter = render_letter(template, listing) if template and verdict.matches else None
             storage.add(listing, verdict, letter)

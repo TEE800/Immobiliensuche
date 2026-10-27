@@ -123,6 +123,8 @@ def check_outdoor(listing: Listing, criteria: Criteria) -> Check:
 
     if _BIG_OUTDOOR.search(text):
         return Check("aussenbereich", JA, "großer Balkon oder Terrasse")
+    if listing.garden_maybe_shared and not _GARDEN_SHARED_ONLY.search(text):
+        return Check("aussenbereich", UNKLAR, "Garten, evtl. nur zur Mitnutzung")
     if listing.balcony or _BALCONY.search(text):
         if criteria.balcony_without_size_ok:
             return Check("aussenbereich", UNKLAR, "Balkon, Größe unklar")
@@ -170,6 +172,20 @@ def check_location(listing: Listing, criteria: Criteria) -> Check:
         ok = any(a <= z <= b for a, b in criteria.zip_ranges)
         return Check("ort", JA if ok else NEIN, listing.zip_code)
     return Check("ort", UNKLAR, "keine Angabe")
+
+
+def worth_details(listing: Listing, criteria: Criteria) -> bool:
+    """Lohnt es, die Detailseite zu laden?
+
+    Geprüft wird nur, was schon in der Trefferliste steht. Die Miete ist dort
+    meist kalt, deshalb reicht hier eine Kaltmiete bis zur Warmmiete-Grenze.
+    """
+    if any(c(listing, criteria).result == NEIN for c in (check_type, check_location, check_rooms)):
+        return False
+    warm, unknown = listing.warm_rent_estimate
+    if not unknown:
+        return warm <= criteria.warm_rent_max
+    return listing.rent_cold is None or listing.rent_cold <= criteria.warm_rent_max
 
 
 CHECKS = (check_type, check_location, check_rooms, check_rent, check_pets, check_outdoor)
