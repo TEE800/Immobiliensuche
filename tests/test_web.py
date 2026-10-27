@@ -52,6 +52,34 @@ def test_list_detail_and_status(tmp_path):
     assert "Mietsuche" in client.get("/").text
 
 
+def test_first_visit_sets_password(tmp_path):
+    (tmp_path / "config.yaml").write_text("datenbank: data/db.sqlite\n")
+    client = TestClient(create_app(load_config(tmp_path / "config.yaml")))
+    assert "Passwort festlegen" in client.get("/login").text
+    assert client.post("/login", data={"passwort": "kurz", "wiederholung": "kurz"}).status_code == 400
+    r = client.post("/login", data={"passwort": "geheim123", "wiederholung": "anders123"})
+    assert r.status_code == 400
+    r = client.post("/login", data={"passwort": "geheim123", "wiederholung": "geheim123"},
+                    follow_redirects=False)
+    assert r.status_code == 303
+    assert client.get("/api/listings").status_code == 200
+
+    other = TestClient(create_app(load_config(tmp_path / "config.yaml")))
+    assert "Anmelden" in other.get("/login").text
+    assert other.post("/login", data={"passwort": "falsch123"}).status_code == 401
+    assert other.post("/login", data={"passwort": "geheim123"}, follow_redirects=False).status_code == 303
+
+
+def test_template_edit_applies_to_existing_listings(tmp_path):
+    _, _, client = setup(tmp_path)
+    login(client)
+    assert "anrede" in client.get("/api/vorlage").json()["placeholders"]
+    assert client.put("/api/vorlage", json={"text": "Hallo {kaputt"}).status_code == 400
+    assert client.put("/api/vorlage", json={"text": "{anrede} {ihr_objekt} in {ort}"}).status_code == 200
+    detail = client.get("/api/listings/test:1").json()
+    assert detail["letter"] == "Sehr geehrte Damen und Herren, Ihre Wohnung in Hamburg"
+
+
 def test_push_subscription_and_send(tmp_path, monkeypatch):
     config, storage, client = setup(tmp_path)
     login(client)

@@ -14,9 +14,28 @@ die Anfrage von Hand.
 | 1 | Portale (ImmoScout24, Immowelt, Kleinanzeigen, Ohne-Makler, SAGA, Genossenschaften) | offen |
 | 2 | Push-Nachrichten (App, optional Telegram) | fertig |
 | 3 | Übersichts-App | fertig |
-| 4 | Dauerbetrieb auf Server/Raspberry Pi | offen |
+| 4 | Dauerbetrieb auf eigenem Server (Docker + Caddy) | vorbereitet |
 
-## Einrichten
+## Server (Hetzner)
+
+1. In der [Hetzner Cloud Console](https://console.hetzner.cloud) einen
+   Server anlegen: Ubuntu 24.04, kleinstes Modell mit 4 GB RAM.
+2. Beim Anlegen unter **Cloud config** den Inhalt von
+   [`deploy/cloud-config.yaml`](deploy/cloud-config.yaml) einfügen.
+3. Nach ca. 5 Minuten `https://<IP-mit-Bindestrichen>.sslip.io` öffnen,
+   z. B. `https://49-12-34-56.sslip.io`, und ein Passwort festlegen.
+
+Das Skript [`deploy/setup.sh`](deploy/setup.sh) installiert Docker, eine
+Firewall und Caddy (holt automatisch HTTPS-Zertifikate) und startet die
+App. Jede Nacht holt es neuen Code aus diesem Repository. Weitere Apps
+bekommen in `/opt/server/docker-compose.yml` einen eigenen Dienst und im
+`Caddyfile` eine eigene Adresse.
+
+Auf dem Server liegen Konfiguration, Anschreiben und Datenbank unter
+`/opt/server/data/immobiliensuche/`. Das Anschreiben lässt sich direkt in
+der App unter „✎ Vorlage“ bearbeiten.
+
+## Lokal einrichten
 
 ```bash
 python3 -m venv .venv && . .venv/bin/activate
@@ -30,7 +49,8 @@ und landen nicht im Repository.
 
 ### Übersichts-App und Push
 
-In `config.yaml` unter `app.passwort` ein Passwort setzen, dann:
+Beim ersten Aufruf legt man in der App ein Passwort fest (alternativ
+`app.passwort` in `config.yaml`). Starten mit:
 
 ```bash
 python -m mietsuche --serve

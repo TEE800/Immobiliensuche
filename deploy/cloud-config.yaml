@@ -1,0 +1,4 @@
+#cloud-config
+# Bei Hetzner beim Erstellen des Servers unter "Cloud config" einfügen.
+runcmd:
+  - curl -fsSL https://raw.githubusercontent.com/TEE800/Immobiliensuche/main/deploy/setup.sh | bash

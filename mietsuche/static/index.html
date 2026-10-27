@@ -78,6 +78,7 @@
   <div class="bar">
     <h1>Mietsuche</h1>
     <button id="push" hidden>🔔 Push aktivieren</button>
+    <a class="btn" href="#/vorlage" title="Anschreiben-Vorlage">✎ Vorlage</a>
   </div>
   <div class="tabs" id="tabs"></div>
 </header>
@@ -149,7 +150,7 @@ function renderTabs() {
     state.statuses.filter((s) => counts[s]).map((s) => [s, `${LABELS[s]} (${counts[s]})`]));
   $("#tabs").innerHTML = tabs.map(([k, label]) =>
     `<button data-f="${k}" class="${state.filter === k ? "on" : ""}">${esc(label)}</button>`).join("");
-  $("#tabs").hidden = location.hash.startsWith("#/anzeige/");
+  $("#tabs").hidden = location.hash.startsWith("#/anzeige/") || location.hash === "#/vorlage";
 }
 
 function renderList() {
@@ -228,6 +229,26 @@ async function renderDetail(key) {
   };
 }
 
+async function renderTemplate() {
+  const t = await api("/api/vorlage");
+  const help = Object.entries(t.placeholders).map(([k, v]) =>
+    `<li><code>{${esc(k)}}</code> ${esc(v)}</li>`).join("");
+  $("#app").innerHTML = `<div class="detail">
+    <button class="back" onclick="location.hash='#/'">← Alle Treffer</button>
+    <h2>Anschreiben-Vorlage</h2>
+    <div class="meta">Gilt sofort für alle Treffer. Platzhalter werden pro Anzeige ausgefüllt.</div>
+    <div class="panel"><textarea id="tpl" rows="18">${esc(t.text)}</textarea>
+      <button class="primary" id="save" style="width:100%;margin-top:10px">Speichern</button></div>
+    <div class="panel"><h3>Platzhalter</h3><ul class="checks">${help}</ul></div>
+  </div>`;
+  $("#save").onclick = async () => {
+    try {
+      await api("/api/vorlage", { method: "PUT", body: JSON.stringify({ text: $("#tpl").value }) });
+      toast("Vorlage gespeichert");
+    } catch (e) { toast(e.message); }
+  };
+}
+
 async function load() {
   const data = await api("/api/listings");
   state.listings = data.listings;
@@ -238,6 +259,7 @@ async function route() {
   renderTabs();
   const m = location.hash.match(/^#\/anzeige\/(.+)$/);
   if (m) { await renderDetail(decodeURIComponent(m[1])); window.scrollTo(0, 0); }
+  else if (location.hash === "#/vorlage") await renderTemplate();
   else renderList();
 }
 
@@ -285,7 +307,8 @@ async function setupPush() {
 window.addEventListener("hashchange", route);
 document.addEventListener("visibilitychange", async () => {
   // Auf der Detailseite nicht neu zeichnen, sonst gehen Änderungen am Anschreiben verloren.
-  if (document.visibilityState === "visible" && !location.hash.startsWith("#/anzeige/")) {
+  if (document.visibilityState === "visible" && !location.hash.startsWith("#/anzeige/")
+      && location.hash !== "#/vorlage") {
     await load();
     route();
   }

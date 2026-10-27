@@ -1,0 +1,22 @@
+# Alle Apps auf dem Server. Eine neue App bekommt hier einen eigenen
+# Dienst und im Caddyfile eine eigene Adresse.
+services:
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    env_file: .env
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+  mietsuche:
+    build: ./apps/immobiliensuche
+    restart: unless-stopped
+    volumes:
+      - ./data/immobiliensuche:/data
+
+volumes:
+  caddy_data:
+  caddy_config:

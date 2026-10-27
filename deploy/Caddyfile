@@ -1,0 +1,4 @@
+# Caddy holt die HTTPS-Zertifikate automatisch.
+{$MIETSUCHE_HOST} {
+	reverse_proxy mietsuche:8080
+}

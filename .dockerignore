@@ -1,0 +1,7 @@
+.git
+.venv
+data
+tests
+config.yaml
+anschreiben.txt
+**/__pycache__

@@ -46,6 +46,20 @@ def salutation(contact_name: str | None) -> str:
     return "Sehr geehrte Damen und Herren,"
 
 
+PLACEHOLDERS = {
+    "anrede": "Sehr geehrte Frau …, / Sehr geehrter Herr …, / Sehr geehrte Damen und Herren,",
+    "name": "Name der Kontaktperson",
+    "titel": "Titel der Anzeige",
+    "adresse": "Straße, PLZ und Ort",
+    "ort": "Stadtteil bzw. Ort",
+    "zimmer": "Zimmerzahl",
+    "flaeche": "Wohnfläche in m²",
+    "portal": "Name des Portals",
+    "objektnr": "Objekt- bzw. Anzeigennummer",
+    "ihr_objekt": "„Ihre Wohnung“ oder „Ihr Haus“",
+}
+
+
 class _Blank(dict):
     def __missing__(self, key):
         return ""
@@ -64,7 +78,11 @@ def render_letter(template: str, listing: Listing) -> str:
         objektnr=listing.external_id,
         ihr_objekt="Ihr Haus" if listing.property_type == "haus" else "Ihre Wohnung",
     )
-    text = template.format_map(values)
+    try:
+        text = template.format_map(values)
+    except (ValueError, IndexError):
+        # Vorlage mit einzelnen geschweiften Klammern: lieber ungefüllt als gar nicht.
+        text = template
     # Leere Platzhalter hinterlassen sonst doppelte Leerzeichen.
     return re.sub(r"[ \t]{2,}", " ", text).strip()
 
