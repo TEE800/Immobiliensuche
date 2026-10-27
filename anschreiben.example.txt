@@ -1,0 +1,8 @@
+{anrede}
+
+mit großem Interesse habe ich Ihre Anzeige „{titel}“ auf {portal} gelesen.
+
+[Hier kommt dein eigener Text hin.]
+
+Mit freundlichen Grüßen
+[Dein Name]

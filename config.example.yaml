@@ -1,0 +1,42 @@
+# Kopiere diese Datei nach config.yaml und passe sie an.
+# config.yaml wird nicht ins Repository eingecheckt.
+
+kriterien:
+  objektarten: [wohnung, haus]
+  zimmer_min: 3
+  warmmiete_max: 2000
+  # Viele Anzeigen nennen nur die Kaltmiete. Dann wird die Anzeige
+  # trotzdem gezeigt, wenn die Kaltmiete höchstens diesen Wert hat.
+  kaltmiete_max_wenn_warm_unbekannt: 1650
+
+  orte:
+    # Ein Treffer passt, wenn der Ort oder die Postleitzahl passt.
+    staedte: [Hamburg, Schenefeld, Halstenbek]
+    plz_bereiche:
+      - [20095, 21149]   # Hamburg
+      - [22041, 22769]   # Hamburg
+      - [22869, 22869]   # Schenefeld
+      - [25469, 25469]   # Halstenbek
+
+  haustiere:
+    # "ja" oder "nach Vereinbarung" passt immer, "nein" nie.
+    # Steht in der Anzeige nichts dazu, entscheidet dieser Schalter.
+    unbekannt_zulassen: true
+
+  aussenbereich:
+    # Gefordert: eigener Garten und/oder großer Balkon/Terrasse.
+    balkon_min_qm: 8
+    # Balkon ohne Größenangabe trotzdem zeigen (markiert als "Größe unklar")?
+    balkon_ohne_groesse_zulassen: true
+
+telegram:
+  # Bot bei @BotFather anlegen, Token hier eintragen oder als
+  # Umgebungsvariable TELEGRAM_BOT_TOKEN setzen.
+  bot_token: ""
+  chat_id: ""
+
+anschreiben_datei: anschreiben.txt
+datenbank: data/mietsuche.sqlite
+
+# Abstand zwischen zwei Suchläufen im Dauerbetrieb.
+intervall_minuten: 7
