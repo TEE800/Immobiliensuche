@@ -30,10 +30,18 @@ kriterien:
     balkon_ohne_groesse_zulassen: true
 
 telegram:
+  # Optional, zusätzlich zu den Push-Nachrichten der App.
   # Bot bei @BotFather anlegen, Token hier eintragen oder als
   # Umgebungsvariable TELEGRAM_BOT_TOKEN setzen.
   bot_token: ""
   chat_id: ""
+
+app:
+  # Passwort für die Übersichts-App (oder Umgebungsvariable APP_PASSWORT).
+  passwort: ""
+  port: 8080
+  # Wird von den Push-Diensten bei Problemen kontaktiert.
+  kontakt_email: ""
 
 anschreiben_datei: anschreiben.txt
 datenbank: data/mietsuche.sqlite

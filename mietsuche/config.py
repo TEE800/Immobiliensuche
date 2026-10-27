@@ -30,6 +30,9 @@ class Config:
     letter_file: Path = Path("anschreiben.txt")
     database: Path = Path("data/mietsuche.sqlite")
     interval_minutes: float = 7
+    web_password: str = ""
+    web_port: int = 8080
+    push_contact: str = ""
 
 
 def load_config(path: str | Path = "config.yaml") -> Config:
@@ -59,6 +62,7 @@ def load_config(path: str | Path = "config.yaml") -> Config:
     )
 
     tg = data.get("telegram", {}) or {}
+    web = data.get("app", {}) or {}
     return Config(
         criteria=criteria,
         telegram_token=os.environ.get("TELEGRAM_BOT_TOKEN") or tg.get("bot_token", ""),
@@ -66,4 +70,7 @@ def load_config(path: str | Path = "config.yaml") -> Config:
         letter_file=base / data.get("anschreiben_datei", "anschreiben.txt"),
         database=base / data.get("datenbank", "data/mietsuche.sqlite"),
         interval_minutes=data.get("intervall_minuten", 7),
+        web_password=os.environ.get("APP_PASSWORT") or str(web.get("passwort", "")),
+        web_port=int(web.get("port", 8080)),
+        push_contact=web.get("kontakt_email", ""),
     )

@@ -158,15 +158,31 @@ def test_run_once_notifies_each_match_once(tmp_path):
     source = FakeSource([make(), make(external_id="2", rooms=1)])
     notifier = FakeNotifier()
 
-    assert run_once(config, storage, [source], notifier) == 1
+    assert run_once(config, storage, [source], [notifier]) == 1
     assert notifier.sent == ["test:1"]
-    assert run_once(config, storage, [source], notifier) == 0
+    assert run_once(config, storage, [source], [notifier]) == 0
     assert notifier.sent == ["test:1"]
 
     row = storage.matches()[0]
     assert row["letter"] == "Sehr geehrte Damen und Herren, Schöne 3-Zimmer-Wohnung"
     assert json.loads(row["checks"])["haustiere"]["ergebnis"] == JA
     assert "Haustiere" in format_caption(row)
+
+
+def test_match_stays_pending_until_a_notifier_succeeds(tmp_path):
+    class Failing:
+        def notify(self, row):
+            raise RuntimeError("offline")
+
+    (tmp_path / "config.yaml").write_text("datenbank: db.sqlite\n")
+    config = load_config(tmp_path / "config.yaml")
+    storage = Storage(config.database)
+    run_once(config, storage, [FakeSource([make()])], [Failing()])
+    assert len(storage.pending_notifications()) == 1
+    ok = FakeNotifier()
+    run_once(config, storage, [FakeSource([make()])], [Failing(), ok])
+    assert ok.sent == ["test:1"]
+    assert storage.pending_notifications() == []
 
 
 def test_failed_source_does_not_stop_others(tmp_path):
@@ -180,4 +196,4 @@ def test_failed_source_does_not_stop_others(tmp_path):
     config = load_config(tmp_path / "config.yaml")
     storage = Storage(config.database)
     notifier = FakeNotifier()
-    assert run_once(config, storage, [Broken(), FakeSource([make()])], notifier) == 1
+    assert run_once(config, storage, [Broken(), FakeSource([make()])], [notifier]) == 1

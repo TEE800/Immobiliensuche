@@ -42,6 +42,11 @@ CREATE TABLE IF NOT EXISTS listings (
     updated_at   TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_listings_matches ON listings(matches, first_seen);
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+    endpoint   TEXT PRIMARY KEY,
+    data       TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
 """
 
 
@@ -54,8 +59,10 @@ class Storage:
         path = Path(path)
         if str(path) != ":memory:":
             path.parent.mkdir(parents=True, exist_ok=True)
-        self.db = sqlite3.connect(path)
+        # Suchlauf und Web-App laufen in verschiedenen Threads.
+        self.db = sqlite3.connect(path, check_same_thread=False, timeout=10)
         self.db.row_factory = sqlite3.Row
+        self.db.execute("PRAGMA journal_mode=WAL")
         self.db.executescript(_SCHEMA)
 
     def seen(self, key: str) -> bool:
@@ -109,3 +116,21 @@ class Storage:
         return self.db.execute(
             "SELECT * FROM listings WHERE matches = 1 ORDER BY first_seen DESC"
         ).fetchall()
+
+    def get(self, key: str) -> sqlite3.Row | None:
+        return self.db.execute("SELECT * FROM listings WHERE key = ?", (key,)).fetchone()
+
+    def add_push_subscription(self, subscription: dict) -> None:
+        self.db.execute(
+            "INSERT OR REPLACE INTO push_subscriptions (endpoint, data, created_at) VALUES (?, ?, ?)",
+            (subscription["endpoint"], json.dumps(subscription), _now()),
+        )
+        self.db.commit()
+
+    def remove_push_subscription(self, endpoint: str) -> None:
+        self.db.execute("DELETE FROM push_subscriptions WHERE endpoint = ?", (endpoint,))
+        self.db.commit()
+
+    def push_subscriptions(self) -> list[dict]:
+        rows = self.db.execute("SELECT data FROM push_subscriptions").fetchall()
+        return [json.loads(r["data"]) for r in rows]

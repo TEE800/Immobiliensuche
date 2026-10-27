@@ -1,17 +1,19 @@
 # Immobiliensuche
 
 Sucht regelmäßig Mietwohnungen und Häuser in Hamburg, Schenefeld und
-Halstenbek, prüft sie gegen die eigenen Kriterien und schickt passende
-Treffer per Telegram – zusammen mit einem fertig ausgefüllten Anschreiben
-zum Kopieren. Abgeschickt wird die Anfrage von Hand.
+Halstenbek, prüft sie gegen die eigenen Kriterien und meldet passende
+Treffer per Push-Nachricht aufs Handy. Die Übersichts-App zeigt jeden
+Treffer mit fertig ausgefülltem Anschreiben zum Kopieren. Abgeschickt wird
+die Anfrage von Hand.
 
 ## Stand
 
 | Schritt | Inhalt | Stand |
 |---|---|---|
-| 1 | Kriterien, Filter, Datenbank, Telegram, Anschreiben | fertig |
+| 1 | Kriterien, Filter, Datenbank, Anschreiben | fertig |
 | 1 | Portale (ImmoScout24, Immowelt, Kleinanzeigen, Ohne-Makler, SAGA, Genossenschaften) | offen |
-| 3 | Übersichts-App | offen |
+| 2 | Push-Nachrichten (App, optional Telegram) | fertig |
+| 3 | Übersichts-App | fertig |
 | 4 | Dauerbetrieb auf Server/Raspberry Pi | offen |
 
 ## Einrichten
@@ -26,7 +28,26 @@ cp anschreiben.example.txt anschreiben.txt
 `config.yaml` und `anschreiben.txt` anpassen. Beide Dateien bleiben lokal
 und landen nicht im Repository.
 
-### Telegram-Bot
+### Übersichts-App und Push
+
+In `config.yaml` unter `app.passwort` ein Passwort setzen, dann:
+
+```bash
+python -m mietsuche --serve
+```
+
+Das startet die App auf Port 8080 und sucht im Hintergrund im eingestellten
+Intervall. Push-Nachrichten brauchen HTTPS, die App gehört also hinter
+einen HTTPS-Proxy (z. B. Caddy) mit eigener Domain. Auf dem Handy die
+Seite in Chrome öffnen, anmelden, „Push aktivieren“ tippen und über das
+Menü „Zum Startbildschirm hinzufügen“.
+
+Ein Tipp auf die Push-Nachricht öffnet den Treffer. Dort: Anschreiben
+kopieren, Anzeige öffnen, abschicken, als „angefragt“ markieren. Den
+Status (Antwort, Besichtigung, Zusage, Absage) und Notizen pflegt man in
+der App.
+
+### Telegram-Bot (optional)
 
 1. In Telegram `@BotFather` öffnen, `/newbot` senden und den Token kopieren.
 2. Dem neuen Bot eine beliebige Nachricht schreiben.
@@ -40,7 +61,8 @@ und landen nicht im Repository.
 ```bash
 python -m mietsuche --dry-run   # ein Lauf, Treffer nur im Terminal
 python -m mietsuche             # ein Lauf mit Telegram
-python -m mietsuche --loop      # dauerhaft, alle ~7 Minuten
+python -m mietsuche --loop      # dauerhaft, alle ~7 Minuten, ohne App
+python -m mietsuche --serve     # App + dauerhafte Suche
 ```
 
 ## Kriterien

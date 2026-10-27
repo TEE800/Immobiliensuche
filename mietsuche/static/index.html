@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1f5f4a">
+<title>Mietsuche</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon.svg">
+<style>
+  :root {
+    --bg: #f4f1ec; --card: #ffffff; --text: #1d1d1b; --muted: #6b6b66; --line: #e4e0d8;
+    --accent: #1f5f4a; --accent-text: #ffffff; --soft: #e8f0ec;
+    --ok: #1f7a4d; --warn: #a15c00; --bad: #b42318;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141513; --card: #1e201d; --text: #ecebe6; --muted: #9b9a93; --line: #2f322d;
+      --accent: #5fb38f; --accent-text: #0e1a14; --soft: #22322a;
+      --ok: #6fcf97; --warn: #f2b45a; --bad: #f08a80;
+    }
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { position: sticky; top: 0; z-index: 2; background: var(--bg);
+    padding: max(12px, env(safe-area-inset-top)) 16px 8px; border-bottom: 1px solid var(--line); }
+  .bar { display: flex; align-items: center; gap: 12px; max-width: 720px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0; flex: 1; }
+  button, .btn { font: inherit; border: 0; border-radius: 10px; padding: 10px 14px; cursor: pointer;
+    background: var(--soft); color: var(--text); text-decoration: none; display: inline-flex;
+    align-items: center; justify-content: center; gap: 6px; }
+  .primary { background: var(--accent); color: var(--accent-text); }
+  .tabs { display: flex; gap: 8px; overflow-x: auto; max-width: 720px; margin: 10px auto 0;
+    scrollbar-width: none; }
+  .tabs button { white-space: nowrap; padding: 6px 12px; border-radius: 999px; font-size: 14px; }
+  .tabs button.on { background: var(--accent); color: var(--accent-text); }
+  main { max-width: 720px; margin: 0 auto; padding: 12px 16px 40px; }
+  .card { display: flex; gap: 12px; background: var(--card); border-radius: 14px; padding: 10px;
+    margin-bottom: 10px; color: inherit; text-decoration: none; border: 1px solid var(--line); }
+  .thumb { width: 96px; height: 96px; flex: none; border-radius: 10px; object-fit: cover;
+    background: var(--soft); }
+  .card h2 { font-size: 15px; margin: 0 0 2px; display: -webkit-box; -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical; overflow: hidden; }
+  .meta { color: var(--muted); font-size: 13px; }
+  .facts { font-weight: 600; font-size: 14px; margin-top: 2px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .chip { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: var(--soft); }
+  .s-neu { background: var(--accent); color: var(--accent-text); }
+  .ok { color: var(--ok); } .unklar { color: var(--warn); } .nein { color: var(--bad); }
+  .empty { text-align: center; color: var(--muted); padding: 48px 16px; }
+  .hero { width: 100%; max-height: 300px; object-fit: cover; border-radius: 14px; background: var(--soft); }
+  .detail h2 { margin: 12px 0 4px; font-size: 20px; }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px;
+    margin-top: 12px; }
+  .panel h3 { margin: 0 0 8px; font-size: 15px; }
+  .checks { list-style: none; padding: 0; margin: 0; }
+  .checks li { padding: 4px 0; }
+  .steps { display: grid; gap: 8px; }
+  .steps .btn, .steps button { width: 100%; padding: 12px; }
+  textarea { width: 100%; font: inherit; font-size: 15px; border: 1px solid var(--line);
+    border-radius: 10px; padding: 10px; background: var(--bg); color: var(--text); resize: vertical; }
+  .statuses { display: flex; flex-wrap: wrap; gap: 6px; }
+  .statuses button { padding: 6px 12px; font-size: 14px; border-radius: 999px; }
+  .statuses button.on { background: var(--accent); color: var(--accent-text); }
+  .back { background: none; padding: 6px 0; color: var(--accent); }
+  details summary { cursor: pointer; color: var(--muted); }
+  .desc { white-space: pre-wrap; font-size: 14px; }
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--text);
+    color: var(--bg); padding: 10px 16px; border-radius: 10px; opacity: 0; transition: opacity .2s;
+    pointer-events: none; }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <h1>Mietsuche</h1>
+    <button id="push" hidden>🔔 Push aktivieren</button>
+  </div>
+  <div class="tabs" id="tabs"></div>
+</header>
+<main id="app"></main>
+<div class="toast" id="toast"></div>
+
+<script>
+const LABELS = {
+  neu: "Neu", angefragt: "Angefragt", antwort: "Antwort", besichtigung: "Besichtigung",
+  zusage: "Zusage", abgesagt: "Abgesagt", uninteressant: "Nicht interessant",
+};
+const CHECK_LABELS = {
+  objektart: "Objekt", ort: "Ort", zimmer: "Zimmer", miete: "Miete",
+  haustiere: "Haustiere", aussenbereich: "Garten/Balkon",
+};
+const ICON = { ja: "✅", unklar: "❓", nein: "❌" };
+const CLOSED = ["abgesagt", "uninteressant"];
+
+let state = { listings: [], statuses: [], filter: "aktiv" };
+
+const $ = (sel) => document.querySelector(sel);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({
+  "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+function toast(msg) {
+  const t = $("#toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 1800);
+}
+
+async function api(path, options = {}) {
+  const res = await fetch(path, {
+    headers: { "Content-Type": "application/json" }, credentials: "same-origin", ...options,
+  });
+  if (res.status === 401) { location.href = "/login"; throw new Error("login"); }
+  if (!res.ok) throw new Error((await res.json()).detail || res.statusText);
+  return res.json();
+}
+
+function facts(l) {
+  const f = [];
+  const de = (n) => n.toLocaleString("de-DE");
+  if (l.rooms) f.push(`${de(l.rooms)} Zi.`);
+  if (l.living_area) f.push(`${de(l.living_area)} m²`);
+  if (l.rent_warm) f.push(`${Math.round(l.rent_warm)} € warm`);
+  else if (l.rent_cold) f.push(`${Math.round(l.rent_cold)} € kalt`);
+  return f.join(" · ");
+}
+
+function ago(iso) {
+  const min = Math.round((Date.now() - new Date(iso)) / 60000);
+  if (min < 60) return `vor ${Math.max(min, 1)} Min.`;
+  const h = Math.round(min / 60);
+  if (h < 24) return `vor ${h} Std.`;
+  return `vor ${Math.round(h / 24)} Tg.`;
+}
+
+function img(url, cls) {
+  return url ? `<img class="${cls}" src="${esc(url)}" alt="" loading="lazy" referrerpolicy="no-referrer">`
+             : `<div class="${cls}"></div>`;
+}
+
+function renderTabs() {
+  const counts = {};
+  for (const l of state.listings) counts[l.status] = (counts[l.status] || 0) + 1;
+  const active = state.listings.filter((l) => !CLOSED.includes(l.status)).length;
+  const tabs = [["aktiv", `Aktiv (${active})`]].concat(
+    state.statuses.filter((s) => counts[s]).map((s) => [s, `${LABELS[s]} (${counts[s]})`]));
+  $("#tabs").innerHTML = tabs.map(([k, label]) =>
+    `<button data-f="${k}" class="${state.filter === k ? "on" : ""}">${esc(label)}</button>`).join("");
+  $("#tabs").hidden = location.hash.startsWith("#/anzeige/");
+}
+
+function renderList() {
+  const items = state.listings.filter((l) =>
+    state.filter === "aktiv" ? !CLOSED.includes(l.status) : l.status === state.filter);
+  if (!items.length) {
+    $("#app").innerHTML = `<p class="empty">${state.listings.length
+      ? "Hier ist gerade nichts." : "Noch keine Treffer. Sobald etwas Passendes auftaucht, erscheint es hier."}</p>`;
+    return;
+  }
+  $("#app").innerHTML = items.map((l) => {
+    const c = l.checks;
+    const chips = ["haustiere", "aussenbereich"].filter((k) => c[k]).map((k) =>
+      `<span class="chip">${ICON[c[k].ergebnis]} ${esc(CHECK_LABELS[k])}</span>`).join("");
+    return `<a class="card" href="#/anzeige/${encodeURIComponent(l.key)}">
+      ${img(l.image_url, "thumb")}
+      <div style="min-width:0">
+        <h2>${esc(l.title)}</h2>
+        <div class="meta">${esc(l.address || "")}</div>
+        <div class="facts">${esc(facts(l))}</div>
+        <div class="chips"><span class="chip s-${l.status}">${LABELS[l.status]}</span>${chips}
+          <span class="chip">${ago(l.first_seen)}</span></div>
+      </div></a>`;
+  }).join("");
+}
+
+async function renderDetail(key) {
+  const l = await api(`/api/listings/${encodeURIComponent(key)}`);
+  const checks = Object.entries(l.checks).map(([k, c]) =>
+    `<li class="${c.ergebnis === "ja" ? "ok" : c.ergebnis}">${ICON[c.ergebnis]}
+      <b>${esc(CHECK_LABELS[k] || k)}:</b> ${esc(c.hinweis)}</li>`).join("");
+  $("#app").innerHTML = `<div class="detail">
+    <button class="back" onclick="location.hash='#/'">← Alle Treffer</button>
+    ${img(l.image_url, "hero")}
+    <h2>${esc(l.title)}</h2>
+    <div class="meta">${esc(l.address || "")}${l.contact_name ? " · " + esc(l.contact_name) : ""}</div>
+    <div class="facts">${esc(facts(l))}${l.available_from ? " · frei ab " + esc(l.available_from) : ""}</div>
+
+    <div class="panel steps">
+      <button class="primary" id="copy">1. Anschreiben kopieren</button>
+      <a class="btn" href="${esc(l.url)}" target="_blank" rel="noopener">2. Anzeige öffnen</a>
+      <button id="asked">${l.status === "neu" ? "3. Als angefragt markieren" : "✓ " + LABELS[l.status]}</button>
+    </div>
+
+    <div class="panel"><h3>Anschreiben</h3>
+      <textarea id="letter" rows="12">${esc(l.letter)}</textarea></div>
+
+    <div class="panel"><h3>Status</h3>
+      <div class="statuses">${state.statuses.map((s) =>
+        `<button data-s="${s}" class="${l.status === s ? "on" : ""}">${LABELS[s]}</button>`).join("")}</div>
+      <h3 style="margin-top:14px">Notizen</h3>
+      <textarea id="notes" rows="3" placeholder="z. B. Besichtigung Do 18 Uhr">${esc(l.notes)}</textarea>
+    </div>
+
+    <div class="panel"><h3>Prüfung</h3><ul class="checks">${checks}</ul></div>
+    ${l.description ? `<div class="panel"><details><summary>Anzeigentext</summary>
+      <p class="desc">${esc(l.description)}</p></details></div>` : ""}
+  </div>`;
+
+  const setStatus = async (status, notes) => {
+    await api(`/api/listings/${encodeURIComponent(key)}`,
+      { method: "POST", body: JSON.stringify({ status, notes }) });
+    await load();
+    renderDetail(key);
+  };
+  $("#copy").onclick = async () => {
+    try { await navigator.clipboard.writeText($("#letter").value); toast("Anschreiben kopiert"); }
+    catch { $("#letter").select(); document.execCommand("copy"); toast("Anschreiben kopiert"); }
+  };
+  $("#asked").onclick = () => setStatus("angefragt");
+  document.querySelectorAll("[data-s]").forEach((b) => b.onclick = () => setStatus(b.dataset.s));
+  $("#notes").onblur = async (e) => {
+    await api(`/api/listings/${encodeURIComponent(key)}`,
+      { method: "POST", body: JSON.stringify({ notes: e.target.value }) });
+    toast("Notiz gespeichert");
+  };
+}
+
+async function load() {
+  const data = await api("/api/listings");
+  state.listings = data.listings;
+  state.statuses = data.statuses;
+}
+
+async function route() {
+  renderTabs();
+  const m = location.hash.match(/^#\/anzeige\/(.+)$/);
+  if (m) { await renderDetail(decodeURIComponent(m[1])); window.scrollTo(0, 0); }
+  else renderList();
+}
+
+$("#tabs").onclick = (e) => {
+  const f = e.target.dataset.f;
+  if (!f) return;
+  state.filter = f;
+  renderTabs();
+  renderList();
+};
+
+// --- Push-Nachrichten -------------------------------------------------------
+
+function b64ToBytes(s) {
+  const pad = "=".repeat((4 - (s.length % 4)) % 4);
+  const raw = atob((s + pad).replace(/-/g, "+").replace(/_/g, "/"));
+  return Uint8Array.from(raw, (c) => c.charCodeAt(0));
+}
+
+async function setupPush() {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+  const reg = await navigator.serviceWorker.register("/sw.js");
+  const existing = await reg.pushManager.getSubscription();
+  if (existing && Notification.permission === "granted") {
+    // Bei jedem Start erneut melden, falls der Server die Anmeldung verloren hat.
+    api("/api/push/subscribe", { method: "POST", body: JSON.stringify(existing) }).catch(() => {});
+    return;
+  }
+  const btn = $("#push");
+  btn.hidden = false;
+  btn.onclick = async () => {
+    if (await Notification.requestPermission() !== "granted") {
+      toast("Benachrichtigungen wurden nicht erlaubt");
+      return;
+    }
+    const { publicKey } = await api("/api/push/key");
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true, applicationServerKey: b64ToBytes(publicKey) });
+    await api("/api/push/subscribe", { method: "POST", body: JSON.stringify(sub) });
+    btn.hidden = true;
+    toast("Push-Nachrichten sind aktiv");
+  };
+}
+
+window.addEventListener("hashchange", route);
+document.addEventListener("visibilitychange", async () => {
+  // Auf der Detailseite nicht neu zeichnen, sonst gehen Änderungen am Anschreiben verloren.
+  if (document.visibilityState === "visible" && !location.hash.startsWith("#/anzeige/")) {
+    await load();
+    route();
+  }
+});
+
+load().then(route).catch((e) => { if (e.message !== "login") $("#app").textContent = e.message; });
+setupPush();
+</script>
+</body>
+</html>

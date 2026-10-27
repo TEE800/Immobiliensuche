@@ -1,0 +1,11 @@
+{
+  "name": "Mietsuche Hamburg",
+  "short_name": "Mietsuche",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f4f1ec",
+  "theme_color": "#1f5f4a",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

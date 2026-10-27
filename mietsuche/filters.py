@@ -135,14 +135,14 @@ def check_outdoor(listing: Listing, criteria: Criteria) -> Check:
 
 def check_type(listing: Listing, criteria: Criteria) -> Check:
     ok = listing.property_type in criteria.property_types
-    return Check("objektart", JA if ok else NEIN, listing.property_type)
+    return Check("objektart", JA if ok else NEIN, listing.property_type.capitalize())
 
 
 def check_rooms(listing: Listing, criteria: Criteria) -> Check:
     if listing.rooms is None:
         return Check("zimmer", UNKLAR, "keine Angabe")
     ok = listing.rooms >= criteria.rooms_min
-    return Check("zimmer", JA if ok else NEIN, f"{listing.rooms:g} Zimmer")
+    return Check("zimmer", JA if ok else NEIN, f"{listing.rooms:g} Zimmer".replace(".", ","))
 
 
 def check_rent(listing: Listing, criteria: Criteria) -> Check:
