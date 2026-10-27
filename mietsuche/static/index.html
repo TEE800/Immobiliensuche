@@ -112,7 +112,8 @@ function toast(msg) {
 
 async function api(path, options = {}) {
   const res = await fetch(path, {
-    headers: { "Content-Type": "application/json" }, credentials: "same-origin", ...options,
+    // ngrok zeigt sonst bei kostenlosen Konten eine Warnseite statt der Antwort.
+    headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "1" }, credentials: "same-origin", ...options,
   });
   if (res.status === 401) { location.href = "/login"; throw new Error("login"); }
   if (!res.ok) throw new Error((await res.json()).detail || res.statusText);

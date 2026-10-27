@@ -27,7 +27,12 @@ irm https://raw.githubusercontent.com/TEE800/Immobiliensuche/main/deploy/windows
 Das installiert bei Bedarf Python, legt alles unter
 `%LOCALAPPDATA%\Mietsuche` ab, startet die Suche bei jeder Anmeldung
 automatisch im Hintergrund und schaltet den Ruhezustand im Netzbetrieb ab.
-Die Übersicht läuft unter http://localhost:8080. Erneut ausführen
+Beim ersten Mal fragt das Skript nach Authtoken und fester Domain von
+[ngrok](https://dashboard.ngrok.com) (kostenloses Konto). Darüber ist die
+Übersicht auch unterwegs auf dem Handy erreichbar, inklusive
+Push-Nachrichten. Am Laptop selbst läuft sie unter http://localhost:8080.
+ngrok zeigt bei kostenlosen Konten beim ersten Aufruf eine Warnseite, die
+man einmal mit „Visit Site“ bestätigt. Erneut ausführen
 aktualisiert auf die neueste Version; Einstellungen und Anschreiben in
 `%LOCALAPPDATA%\Mietsuche\data` bleiben erhalten.
 

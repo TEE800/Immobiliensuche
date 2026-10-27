@@ -32,6 +32,8 @@ class Config:
     interval_minutes: float = 7
     web_password: str = ""
     web_port: int = 8080
+    web_host: str = "0.0.0.0"
+    ngrok_domain: str = ""
     push_contact: str = ""
 
 
@@ -72,5 +74,7 @@ def load_config(path: str | Path = "config.yaml") -> Config:
         interval_minutes=data.get("intervall_minuten", 7),
         web_password=os.environ.get("APP_PASSWORT") or str(web.get("passwort", "")),
         web_port=int(web.get("port", 8080)),
+        web_host=str(web.get("host", "0.0.0.0")),
+        ngrok_domain=str(web.get("ngrok_domain", "") or ""),
         push_contact=web.get("kontakt_email", ""),
     )

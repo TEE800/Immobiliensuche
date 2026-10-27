@@ -128,7 +128,11 @@ def main(argv: list[str] | None = None) -> None:
         threading.Thread(
             target=search_loop, args=(config, sources, notifiers_factory), daemon=True
         ).start()
-        uvicorn.run(create_app(config), host="0.0.0.0", port=config.web_port)
+        if config.ngrok_domain:
+            from .tunnel import start_ngrok
+
+            start_ngrok(config.ngrok_domain, config.web_port)
+        uvicorn.run(create_app(config), host=config.web_host, port=config.web_port)
         return
 
     search_loop(config, sources, notifiers_factory, once=not args.loop)

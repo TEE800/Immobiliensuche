@@ -40,6 +40,11 @@ app:
   # Passwort für die Übersichts-App (oder Umgebungsvariable APP_PASSWORT).
   passwort: ""
   port: 8080
+  # 127.0.0.1 = nur auf diesem Rechner, 0.0.0.0 = auch im Heimnetz.
+  host: 0.0.0.0
+  # Feste ngrok-Adresse (z. B. abc-123.ngrok-free.app), damit die App
+  # vom Laptop aus auch unterwegs auf dem Handy erreichbar ist.
+  ngrok_domain: ""
   # Wird von den Push-Diensten bei Problemen kontaktiert.
   kontakt_email: ""
 

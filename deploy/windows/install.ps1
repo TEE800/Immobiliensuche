@@ -41,6 +41,25 @@ if (-not (Test-Path $Venv)) { py -3 -m venv $Venv }
 if (-not (Test-Path "$Data\config.yaml")) { Copy-Item "$App\config.example.yaml" "$Data\config.yaml" }
 if (-not (Test-Path "$Data\anschreiben.txt")) { Copy-Item "$App\anschreiben.example.txt" "$Data\anschreiben.txt" }
 
+Step "Zugang fürs Handy (ngrok)"
+$cfg = Get-Content "$Data\config.yaml" -Raw -Encoding UTF8
+if ($cfg -match 'ngrok_domain: ""') {
+    if (-not (Get-Command ngrok -ErrorAction SilentlyContinue)) {
+        winget install --id Ngrok.Ngrok -e --silent --accept-package-agreements --accept-source-agreements
+        $env:Path = [Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [Environment]::GetEnvironmentVariable("Path", "User")
+    }
+    Write-Host "Auf https://dashboard.ngrok.com findest du beides:"
+    $token = Read-Host "1. Authtoken (Menü 'Your Authtoken')"
+    $domain = Read-Host "2. Deine Domain (Menü 'Domains', z. B. abc-123.ngrok-free.app)"
+    $domain = $domain.Trim() -replace '^https?://', '' -replace '/$', ''
+    ngrok config add-authtoken $token.Trim()
+    $cfg = $cfg -replace 'ngrok_domain: ""', "ngrok_domain: `"$domain`""
+    # Von außen nur über ngrok, das erspart auch die Nachfrage der Windows-Firewall.
+    $cfg = $cfg -replace 'host: 0\.0\.0\.0', 'host: 127.0.0.1'
+    [IO.File]::WriteAllText("$Data\config.yaml", $cfg, (New-Object Text.UTF8Encoding $false))
+}
+$domain = [regex]::Match($cfg, 'ngrok_domain: "([^"]*)"').Groups[1].Value
+
 Step "Autostart einrichten"
 $action = New-ScheduledTaskAction -Execute "$Venv\Scripts\pythonw.exe" `
     -Argument "-m mietsuche --serve --config `"$Data\config.yaml`"" -WorkingDirectory $App
@@ -59,5 +78,6 @@ powercfg /change hibernate-timeout-ac 0
 Start-Sleep -Seconds 5
 Start-Process "http://localhost:8080"
 Write-Host "`nFertig! Die Mietsuche läuft jetzt im Hintergrund und startet bei jeder Anmeldung automatisch." -ForegroundColor Green
-Write-Host "Übersicht: http://localhost:8080"
+Write-Host "Übersicht am Laptop: http://localhost:8080"
+if ($domain) { Write-Host "Übersicht auf dem Handy: https://$domain" -ForegroundColor Yellow }
 Write-Host "Einstellungen: $Data"
