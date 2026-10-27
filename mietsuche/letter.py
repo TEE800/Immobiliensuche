@@ -11,6 +11,8 @@ Platzhalter in anschreiben.txt (alle optional):
     {zimmer}     Zimmerzahl
     {flaeche}    Wohnfläche in m²
     {portal}     Name des Portals
+    {objektnr}   Objekt- bzw. Anzeigennummer des Portals
+    {ihr_objekt} "Ihre Wohnung" oder "Ihr Haus"
 """
 
 from __future__ import annotations
@@ -59,6 +61,8 @@ def render_letter(template: str, listing: Listing) -> str:
         zimmer=f"{listing.rooms:g}" if listing.rooms else "",
         flaeche=f"{listing.living_area:g}" if listing.living_area else "",
         portal=_PORTALS.get(listing.source, listing.source),
+        objektnr=listing.external_id,
+        ihr_objekt="Ihr Haus" if listing.property_type == "haus" else "Ihre Wohnung",
     )
     text = template.format_map(values)
     # Leere Platzhalter hinterlassen sonst doppelte Leerzeichen.

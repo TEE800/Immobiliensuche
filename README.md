@@ -61,7 +61,8 @@ mit ❓, damit man gezielt nachfragen kann.
 ## Anschreiben
 
 Platzhalter in `anschreiben.txt`: `{anrede}`, `{name}`, `{titel}`,
-`{adresse}`, `{ort}`, `{zimmer}`, `{flaeche}`, `{portal}`. Die Anrede wird
+`{adresse}`, `{ort}`, `{zimmer}`, `{flaeche}`, `{portal}`, `{objektnr}`,
+`{ihr_objekt}` („Ihre Wohnung“ bzw. „Ihr Haus“). Die Anrede wird
 aus dem Kontaktnamen gebildet („Sehr geehrte Frau Müller,“), sonst
 „Sehr geehrte Damen und Herren,“.
 

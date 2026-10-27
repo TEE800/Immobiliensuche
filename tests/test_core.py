@@ -125,6 +125,13 @@ def test_render_letter_fills_and_blanks_unknown():
     assert text.endswith("Ende")
 
 
+def test_render_letter_object_and_number():
+    tpl = "wir interessieren uns sehr für {ihr_objekt} (Nr. {objektnr}) in {ort}."
+    house = make(property_type="haus", external_id="152388", city="Halstenbek")
+    assert render_letter(tpl, house) == "wir interessieren uns sehr für Ihr Haus (Nr. 152388) in Halstenbek."
+    assert "Ihre Wohnung" in render_letter(tpl, make())
+
+
 class FakeSource(Source):
     name = "test"
 
