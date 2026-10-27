@@ -30,6 +30,8 @@ class Listing:
     service_charges: float | None = None
     pets_allowed: str | None = None  # "ja", "nach_vereinbarung", "nein" oder None
     garden: bool | None = None
+    # Portal sagt nur „Garten oder Gartenmitnutzung“, also vielleicht nur der Hof für alle.
+    garden_maybe_shared: bool = False
     balcony: bool | None = None
     balcony_area: float | None = None
     description: str = ""
