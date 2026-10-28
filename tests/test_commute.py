@@ -57,6 +57,7 @@ WORK = [Workplace("Kevin", "Arbeit 1, 20095 Hamburg"), Workplace("Fritzi", "Unbe
 def test_fastest_connection_per_workplace():
     result = commute_times(listing(), WORK, "08:00", service())
     steps = result[0].pop("schritte")
+    assert (result[0].pop("von"), result[0].pop("nach"), result[0].pop("km")) == ([53.55, 9.93], [53.55, 10.0], 4.6)
     assert result == [{"name": "Kevin", "tage": "Mo–Fr", "ankunft": "08:00", "minuten": 25, "umstiege": 1,
                        "linien": "Bus 2, U3", "ungefaehr": False}]
     # Ortszeit (Winterzeit = UTC+1), START/END mit lesbaren Namen

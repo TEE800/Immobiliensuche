@@ -7,6 +7,7 @@ ohne Konto. Gesendet werden nur Koordinaten bzw. die Adresse der Anzeige.
 from __future__ import annotations
 
 import logging
+import math
 from datetime import datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
@@ -113,6 +114,13 @@ class Transitous:
         return min(options, key=lambda o: (o["minuten"], o["umstiege"])) if options else None
 
 
+def distance_km(a: tuple[float, float], b: tuple[float, float]) -> float:
+    """Luftlinie in Kilometern."""
+    lat1, lon1, lat2, lon2 = map(math.radians, (*a, *b))
+    h = math.sin((lat2 - lat1) / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin((lon2 - lon1) / 2) ** 2
+    return 6371 * 2 * math.asin(math.sqrt(h))
+
+
 def listing_place(listing: Listing) -> tuple[str, bool]:
     """Suchtext für die Wohnung und ob er nur ungefähr ist (ohne Straße)."""
     place = " ".join(p for p in (listing.zip_code, listing.city) if p)
@@ -140,5 +148,8 @@ def commute_times(listing: Listing, workplaces: list[Workplace], arrival: str,
             best = service.plan(start, goal, next_day_at(when.clock, when.days), f"Arbeit {work.name}")
             if best:
                 results.append({"name": work.name, "tage": when.label, "ankunft": when.clock,
-                                **best, "ungefaehr": approx})
+                                **best, "ungefaehr": approx,
+                                # Für die Karte: Wohnung, Arbeitsort und Luftlinie
+                                "von": [round(x, 5) for x in start], "nach": [round(x, 5) for x in goal],
+                                "km": round(distance_km(start, goal), 1)})
     return results

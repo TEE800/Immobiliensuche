@@ -180,6 +180,14 @@ def create_app(config: Config) -> FastAPI:
     def icon():
         return FileResponse(STATIC / "icon.svg", media_type="image/svg+xml")
 
+    @app.get("/leaflet/{name}")
+    def leaflet(name: str):
+        # Kartenbibliothek liegt bei der App, damit kein fremder Server mitliest.
+        types = {"leaflet.js": "text/javascript", "leaflet.css": "text/css"}
+        if name not in types:
+            return JSONResponse({"detail": "Nicht gefunden"}, status_code=404)
+        return FileResponse(STATIC / "leaflet" / name, media_type=types[name])
+
     @app.get("/api/listings")
     def listings():
         return {"statuses": STATUSES, "listings": [row_to_dict(r) for r in storage.matches()]}

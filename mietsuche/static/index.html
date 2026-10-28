@@ -77,7 +77,10 @@
     color: var(--bg); padding: 10px 16px; border-radius: 10px; opacity: 0; transition: opacity .2s;
     pointer-events: none; }
   .toast.show { opacity: 1; }
+  #map { height: 260px; border-radius: 10px; margin-bottom: 8px; }
 </style>
+<link rel="stylesheet" href="/leaflet/leaflet.css">
+<script src="/leaflet/leaflet.js" defer></script>
 </head>
 <body>
 <header>
@@ -162,6 +165,42 @@ function rentPanel(l) {
       Nur eine Orientierung, keine rechtliche Prüfung. Bei deutlich höherer Miete kann der Mieterverein helfen.</div>`;
   }
   return `<div class="panel"><h3>Mietenspiegel</h3>${body}</div>`;
+}
+
+function places(l) {
+  // Wohnung und Arbeitsorte (je Person einmal) aus den Fahrzeiten
+  const seen = new Map();
+  for (const c of l.commute || []) if (c.nach && !seen.has(c.name)) seen.set(c.name, c);
+  const home = (l.commute || []).find((c) => c.von);
+  return home ? { home: home.von, work: [...seen.values()], approx: home.ungefaehr } : null;
+}
+
+function mapPanel(l) {
+  const p = places(l);
+  if (!p) return "";
+  const km = p.work.map((c) => `<li><b>${esc(c.name)}:</b> ${c.km.toLocaleString("de-DE")} km Luftlinie</li>`).join("");
+  const approx = p.approx ? '<div class="meta">Punkt ungefähr: Die Anzeige nennt keine Straße.</div>' : "";
+  return `<div class="panel"><h3>Lage</h3><div id="map"></div><ul class="checks">${km}</ul>${approx}</div>`;
+}
+
+function drawMap(l) {
+  const p = places(l);
+  if (!p || !window.L || !$("#map")) return;
+  const map = L.map("map", { scrollWheelZoom: false });
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 18, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+  }).addTo(map);
+  const home = L.circleMarker(p.home, { radius: 9, color: "#c0392b", fillOpacity: 0.9 })
+    .bindTooltip("Wohnung", { permanent: true, direction: "top" }).addTo(map);
+  const points = [p.home];
+  for (const c of p.work) {
+    L.circleMarker(c.nach, { radius: 7, color: "#2c3e8f", fillOpacity: 0.9 })
+      .bindTooltip(`${c.name}: ${c.km.toLocaleString("de-DE")} km`, { permanent: true, direction: "top" }).addTo(map);
+    L.polyline([p.home, c.nach], { color: "#2c3e8f", weight: 2, dashArray: "4 6" }).addTo(map);
+    points.push(c.nach);
+  }
+  map.fitBounds(points, { padding: [30, 30] });
+  home.bringToFront();
 }
 
 function commuteShort(l) {
@@ -305,6 +344,7 @@ async function renderDetail(key) {
       <textarea id="notes" rows="3" placeholder="z. B. Besichtigung Do 18 Uhr">${esc(l.notes)}</textarea>
     </div>
 
+    ${mapPanel(l)}
     ${commutePanel(l)}
     ${rentPanel(l)}
     <div class="panel"><h3>Prüfung</h3><ul class="checks">${checks}</ul></div>
@@ -312,6 +352,7 @@ async function renderDetail(key) {
       <p class="desc">${esc(l.description)}</p></details></div>` : ""}
   </div>`;
 
+  drawMap(l);
   const setStatus = async (status, notes) => {
     await api(`/api/listings/${encodeURIComponent(key)}`,
       { method: "POST", body: JSON.stringify({ status, notes }) });
