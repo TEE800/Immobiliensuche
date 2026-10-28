@@ -97,3 +97,11 @@ def test_push_subscription_and_send(tmp_path, monkeypatch):
     assert sent[0][0]["endpoint"] == "https://push.example/abc"
     assert '"url": "/#/anzeige/test:1"' in sent[0][1]
     assert push_payload(row)["body"].endswith("3 Zi. · 1800 € warm")
+
+
+def test_leaflet_is_served_locally(tmp_path):
+    _, _, client = setup(tmp_path)
+    login(client)
+    assert client.get("/leaflet/leaflet.js").status_code == 200
+    assert client.get("/leaflet/leaflet.css").headers["content-type"].startswith("text/css")
+    assert client.get("/leaflet/..%2Fweb.py").status_code == 404
