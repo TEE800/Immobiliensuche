@@ -14,6 +14,7 @@ from .commute import Transitous, commute_times
 from .config import Config, load_config
 from .filters import evaluate, worth_details
 from .letter import load_template, render_letter
+from .mietenspiegel import VERSION as RENT_INDEX_VERSION, Wohnlagen, compare as compare_rent
 from .models import Listing
 from .sources import REGISTRY, Source
 from .storage import Storage
@@ -49,8 +50,32 @@ def _update_commutes(config: Config, storage: Storage, transit) -> None:
         storage.update_data(row["key"], data)
 
 
+def _rent_index(listing: Listing, lagen: Wohnlagen) -> dict:
+    lage = None
+    if listing.city == "Hamburg":
+        try:
+            lage = lagen.lookup(listing.street, listing.zip_code)
+        except Exception as e:
+            # Ohne Wohnlage geht der Vergleich trotzdem, nur mit breiterer Spanne.
+            log.warning("Wohnlage für %s nicht gefunden: %s", listing.url, e)
+    return compare_rent(listing, lage)
+
+
+def _update_rent_index(storage: Storage, lagen: Wohnlagen) -> None:
+    """Mietenspiegel-Vergleich für ältere Treffer nachtragen."""
+    for row in storage.matches():
+        if row["status"] in ("abgesagt", "uninteressant"):
+            continue
+        data = json.loads(row["data"])
+        if data.get("rent_index_for") == RENT_INDEX_VERSION:
+            continue
+        data["rent_index"] = _rent_index(Listing(**data), lagen)
+        data["rent_index_for"] = RENT_INDEX_VERSION
+        storage.update_data(row["key"], data)
+
+
 def run_once(config: Config, storage: Storage, sources: list[Source], notifiers: list,
-             transit=None) -> int:
+             transit=None, lagen: Wohnlagen | None = None) -> int:
     """Führt einen Suchlauf aus und gibt die Zahl neuer Treffer zurück.
 
     Ohne ``notifiers`` werden Treffer nur im Terminal ausgegeben.
@@ -58,6 +83,7 @@ def run_once(config: Config, storage: Storage, sources: list[Source], notifiers:
     template = load_template(config.letter_file)
     if config.workplaces and transit is None:
         transit = Transitous()
+    lagen = lagen or Wohnlagen()
     new_matches = 0
     for source in sources:
         try:
@@ -85,6 +111,9 @@ def run_once(config: Config, storage: Storage, sources: list[Source], notifiers:
                 except Exception as e:
                     # Ohne Fahrzeit lieber trotzdem melden als den Treffer zurückhalten.
                     log.warning("Fahrzeit für %s nicht berechnet: %s", listing.url, e)
+            if verdict.matches:
+                listing.rent_index = _rent_index(listing, lagen)
+                listing.rent_index_for = RENT_INDEX_VERSION
             letter = render_letter(template, listing) if template and verdict.matches else None
             storage.add(listing, verdict, letter)
             if verdict.matches:
@@ -93,6 +122,7 @@ def run_once(config: Config, storage: Storage, sources: list[Source], notifiers:
 
     if config.workplaces:
         _update_commutes(config, storage, transit)
+    _update_rent_index(storage, lagen)
 
     for row in storage.pending_notifications():
         if not notifiers:

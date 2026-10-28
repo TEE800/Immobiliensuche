@@ -69,3 +69,12 @@ def split_place(text: str | None) -> tuple[str | None, str | None, str | None]:
 
 def clean(text: str | None) -> str:
     return " ".join((text or "").split())
+
+
+_YEAR = re.compile(r"\b(?:Baujahr|Bj\.?)\s*:?\s*(?:ca\.?\s*|um\s*)?((?:18|19|20)\d\d)\b", re.I)
+
+
+def year_from_text(text: str) -> int | None:
+    """Baujahr aus dem Anzeigentext, z. B. „Baujahr: 1928“ oder „Bj. ca. 1965“."""
+    m = _YEAR.search(text or "")
+    return int(m.group(1)) if m else None

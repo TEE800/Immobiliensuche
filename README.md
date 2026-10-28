@@ -152,6 +152,18 @@ die Koordinaten der Arbeitsorte, keine Namen. Nennt eine Anzeige keine
 Straße, wird ab dem Stadtteil gerechnet und das Ergebnis als „ungefähr“
 markiert.
 
+## Mietenspiegel
+
+Für Treffer in Hamburg vergleicht die Mietsuche die Kaltmiete je m² mit dem
+Hamburger Mietenspiegel 2025 (Tabelle in `mietsuche/tabellen/mietenspiegel_2025.json`,
+aus dem Geodienst der Stadt). Die Wohnlage „normal“ oder „gut“ kommt aus dem
+Wohnlagenverzeichnis; dafür werden Straße und PLZ der Anzeige an
+geodienste.hamburg.de geschickt. Das Baujahr steht bei Ohne-Makler in den
+Angaben, bei Kleinanzeigen nur manchmal im Text. Fehlt Baujahr oder Wohnlage,
+zeigt die App die Spanne über alle passenden Felder. Für Häuser sowie
+Schenefeld und Halstenbek gilt der Hamburger Mietenspiegel nicht. Das Ergebnis
+ist eine Orientierung, keine rechtliche Prüfung.
+
 ## Anschreiben
 
 Platzhalter in `anschreiben.txt`: `{anrede}`, `{name}`, `{titel}`,

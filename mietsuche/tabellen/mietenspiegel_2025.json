@@ -1,0 +1,888 @@
+{
+ "titel": "Hamburger Mietenspiegel 2025",
+ "stichtag": "2025-04-01",
+ "quelle": "https://geodienste.hamburg.de/HH_WFS_Mietenspiegel (Behörde für Stadtentwicklung und Wohnen)",
+ "einheit": "Nettokaltmiete ohne Heizung und Betriebskosten in Euro je m², Wohnungen mit Bad und Sammelheizung",
+ "felder": [
+  {
+   "baujahr_von": null,
+   "baujahr_bis": 1918,
+   "lage": "normal",
+   "flaeche_von": 0,
+   "flaeche_bis": 41,
+   "mittel": 13.77,
+   "von": 10.81,
+   "bis": 17.17
+  },
+  {
+   "baujahr_von": 1919,
+   "baujahr_bis": 1948,
+   "lage": "normal",
+   "flaeche_von": 0,
+   "flaeche_bis": 41,
+   "mittel": 10.49,
+   "von": 9.57,
+   "bis": 12.88
+  },
+  {
+   "baujahr_von": 1948,
+   "baujahr_bis": 1960,
+   "lage": "normal",
+   "flaeche_von": 0,
+   "flaeche_bis": 41,
+   "mittel": 9.46,
+   "von": 8.52,
+   "bis": 12.42
+  },
+  {
+   "baujahr_von": 1961,
+   "baujahr_bis": 1967,
+   "lage": "normal",
+   "flaeche_von": 0,
+   "flaeche_bis": 41,
+   "mittel": 9.01,
+   "von": 8.01,
+   "bis": 14.05
+  },
+  {
+   "baujahr_von": 1968,
+   "baujahr_bis": 1977,
+   "lage": "normal",
+   "flaeche_von": 0,
+   "flaeche_bis": 41,
+   "mittel": 10.26,
+   "von": 8.28,
+   "bis": 14.16
+  },
+  {
+   "baujahr_von": 1978,
+   "baujahr_bis": 1993,
+   "lage": "normal",
+   "flaeche_von": 0,
+   "flaeche_bis": 41,
+   "mittel": 11.55,
+   "von": 8.57,
+   "bis": 14.93
+  },
+  {
+   "baujahr_von": 1994,
+   "baujahr_bis": 2010,
+   "lage": "normal",
+   "flaeche_von": 0,
+   "flaeche_bis": 41,
+   "mittel": 12.23,
+   "von": 10.17,
+   "bis": 16.37
+  },
+  {
+   "baujahr_von": 2011,
+   "baujahr_bis": 2015,
+   "lage": "normal",
+   "flaeche_von": 0,
+   "flaeche_bis": 41,
+   "mittel": 18.5,
+   "von": 16.19,
+   "bis": 19.66
+  },
+  {
+   "baujahr_von": 2016,
+   "baujahr_bis": 2020,
+   "lage": "normal",
+   "flaeche_von": 0,
+   "flaeche_bis": 41,
+   "mittel": 16.64,
+   "von": 13.72,
+   "bis": 18.86
+  },
+  {
+   "baujahr_von": 2021,
+   "baujahr_bis": 2024,
+   "lage": "normal",
+   "flaeche_von": 0,
+   "flaeche_bis": 41,
+   "mittel": 19.78,
+   "von": 13.05,
+   "bis": 25.01
+  },
+  {
+   "baujahr_von": null,
+   "baujahr_bis": 1918,
+   "lage": "normal",
+   "flaeche_von": 41,
+   "flaeche_bis": 66,
+   "mittel": 11.5,
+   "von": 9.65,
+   "bis": 15.0
+  },
+  {
+   "baujahr_von": 1919,
+   "baujahr_bis": 1948,
+   "lage": "normal",
+   "flaeche_von": 41,
+   "flaeche_bis": 66,
+   "mittel": 9.34,
+   "von": 7.95,
+   "bis": 12.41
+  },
+  {
+   "baujahr_von": 1948,
+   "baujahr_bis": 1960,
+   "lage": "normal",
+   "flaeche_von": 41,
+   "flaeche_bis": 66,
+   "mittel": 8.59,
+   "von": 7.7,
+   "bis": 11.31
+  },
+  {
+   "baujahr_von": 1961,
+   "baujahr_bis": 1967,
+   "lage": "normal",
+   "flaeche_von": 41,
+   "flaeche_bis": 66,
+   "mittel": 7.56,
+   "von": 7.25,
+   "bis": 10.82
+  },
+  {
+   "baujahr_von": 1968,
+   "baujahr_bis": 1977,
+   "lage": "normal",
+   "flaeche_von": 41,
+   "flaeche_bis": 66,
+   "mittel": 9.73,
+   "von": 7.33,
+   "bis": 13.66
+  },
+  {
+   "baujahr_von": 1978,
+   "baujahr_bis": 1993,
+   "lage": "normal",
+   "flaeche_von": 41,
+   "flaeche_bis": 66,
+   "mittel": 9.33,
+   "von": 7.69,
+   "bis": 12.91
+  },
+  {
+   "baujahr_von": 1994,
+   "baujahr_bis": 2010,
+   "lage": "normal",
+   "flaeche_von": 41,
+   "flaeche_bis": 66,
+   "mittel": 11.35,
+   "von": 9.12,
+   "bis": 13.72
+  },
+  {
+   "baujahr_von": 2011,
+   "baujahr_bis": 2015,
+   "lage": "normal",
+   "flaeche_von": 41,
+   "flaeche_bis": 66,
+   "mittel": 15.26,
+   "von": 12.18,
+   "bis": 18.03
+  },
+  {
+   "baujahr_von": 2016,
+   "baujahr_bis": 2020,
+   "lage": "normal",
+   "flaeche_von": 41,
+   "flaeche_bis": 66,
+   "mittel": 14.77,
+   "von": 12.18,
+   "bis": 18.83
+  },
+  {
+   "baujahr_von": 2021,
+   "baujahr_bis": 2024,
+   "lage": "normal",
+   "flaeche_von": 41,
+   "flaeche_bis": 66,
+   "mittel": 17.41,
+   "von": 12.0,
+   "bis": 21.15
+  },
+  {
+   "baujahr_von": null,
+   "baujahr_bis": 1918,
+   "lage": "normal",
+   "flaeche_von": 66,
+   "flaeche_bis": 91,
+   "mittel": 11.57,
+   "von": 9.16,
+   "bis": 15.61
+  },
+  {
+   "baujahr_von": 1919,
+   "baujahr_bis": 1948,
+   "lage": "normal",
+   "flaeche_von": 66,
+   "flaeche_bis": 91,
+   "mittel": 9.29,
+   "von": 7.81,
+   "bis": 11.94
+  },
+  {
+   "baujahr_von": 1948,
+   "baujahr_bis": 1960,
+   "lage": "normal",
+   "flaeche_von": 66,
+   "flaeche_bis": 91,
+   "mittel": 8.5,
+   "von": 7.8,
+   "bis": 11.13
+  },
+  {
+   "baujahr_von": 1961,
+   "baujahr_bis": 1967,
+   "lage": "normal",
+   "flaeche_von": 66,
+   "flaeche_bis": 91,
+   "mittel": 6.93,
+   "von": 6.44,
+   "bis": 10.0
+  },
+  {
+   "baujahr_von": 1968,
+   "baujahr_bis": 1977,
+   "lage": "normal",
+   "flaeche_von": 66,
+   "flaeche_bis": 91,
+   "mittel": 6.76,
+   "von": 6.25,
+   "bis": 9.48
+  },
+  {
+   "baujahr_von": 1978,
+   "baujahr_bis": 1993,
+   "lage": "normal",
+   "flaeche_von": 66,
+   "flaeche_bis": 91,
+   "mittel": 8.59,
+   "von": 7.17,
+   "bis": 12.32
+  },
+  {
+   "baujahr_von": 1994,
+   "baujahr_bis": 2010,
+   "lage": "normal",
+   "flaeche_von": 66,
+   "flaeche_bis": 91,
+   "mittel": 10.69,
+   "von": 8.93,
+   "bis": 13.5
+  },
+  {
+   "baujahr_von": 2011,
+   "baujahr_bis": 2015,
+   "lage": "normal",
+   "flaeche_von": 66,
+   "flaeche_bis": 91,
+   "mittel": 14.86,
+   "von": 11.95,
+   "bis": 17.32
+  },
+  {
+   "baujahr_von": 2016,
+   "baujahr_bis": 2020,
+   "lage": "normal",
+   "flaeche_von": 66,
+   "flaeche_bis": 91,
+   "mittel": 15.28,
+   "von": 12.18,
+   "bis": 18.44
+  },
+  {
+   "baujahr_von": 2021,
+   "baujahr_bis": 2024,
+   "lage": "normal",
+   "flaeche_von": 66,
+   "flaeche_bis": 91,
+   "mittel": 17.61,
+   "von": 14.26,
+   "bis": 21.42
+  },
+  {
+   "baujahr_von": null,
+   "baujahr_bis": 1918,
+   "lage": "normal",
+   "flaeche_von": 91,
+   "flaeche_bis": null,
+   "mittel": 10.89,
+   "von": 9.49,
+   "bis": 14.72
+  },
+  {
+   "baujahr_von": 1919,
+   "baujahr_bis": 1948,
+   "lage": "normal",
+   "flaeche_von": 91,
+   "flaeche_bis": null,
+   "mittel": 11.94,
+   "von": 8.46,
+   "bis": 13.37
+  },
+  {
+   "baujahr_von": 1948,
+   "baujahr_bis": 1960,
+   "lage": "normal",
+   "flaeche_von": 91,
+   "flaeche_bis": null,
+   "mittel": 11.1,
+   "von": 6.87,
+   "bis": 14.52
+  },
+  {
+   "baujahr_von": 1961,
+   "baujahr_bis": 1967,
+   "lage": "normal",
+   "flaeche_von": 91,
+   "flaeche_bis": null,
+   "mittel": 8.0,
+   "von": 6.92,
+   "bis": 12.49
+  },
+  {
+   "baujahr_von": 1968,
+   "baujahr_bis": 1977,
+   "lage": "normal",
+   "flaeche_von": 91,
+   "flaeche_bis": null,
+   "mittel": 7.73,
+   "von": 6.4,
+   "bis": 11.18
+  },
+  {
+   "baujahr_von": 1978,
+   "baujahr_bis": 1993,
+   "lage": "normal",
+   "flaeche_von": 91,
+   "flaeche_bis": null,
+   "mittel": 8.95,
+   "von": 6.57,
+   "bis": 11.59
+  },
+  {
+   "baujahr_von": 1994,
+   "baujahr_bis": 2010,
+   "lage": "normal",
+   "flaeche_von": 91,
+   "flaeche_bis": null,
+   "mittel": 11.92,
+   "von": 9.62,
+   "bis": 14.51
+  },
+  {
+   "baujahr_von": 2011,
+   "baujahr_bis": 2015,
+   "lage": "normal",
+   "flaeche_von": 91,
+   "flaeche_bis": null,
+   "mittel": 15.17,
+   "von": 12.22,
+   "bis": 18.32
+  },
+  {
+   "baujahr_von": 2016,
+   "baujahr_bis": 2020,
+   "lage": "normal",
+   "flaeche_von": 91,
+   "flaeche_bis": null,
+   "mittel": 14.31,
+   "von": 12.76,
+   "bis": 18.33
+  },
+  {
+   "baujahr_von": 2021,
+   "baujahr_bis": 2024,
+   "lage": "normal",
+   "flaeche_von": 91,
+   "flaeche_bis": null,
+   "mittel": 17.18,
+   "von": 13.5,
+   "bis": 20.93
+  },
+  {
+   "baujahr_von": null,
+   "baujahr_bis": 1918,
+   "lage": "gut",
+   "flaeche_von": 0,
+   "flaeche_bis": 41,
+   "mittel": 13.02,
+   "von": 6.6,
+   "bis": 15.3
+  },
+  {
+   "baujahr_von": 1919,
+   "baujahr_bis": 1948,
+   "lage": "gut",
+   "flaeche_von": 0,
+   "flaeche_bis": 41,
+   "mittel": 12.01,
+   "von": 9.44,
+   "bis": 14.4
+  },
+  {
+   "baujahr_von": 1948,
+   "baujahr_bis": 1960,
+   "lage": "gut",
+   "flaeche_von": 0,
+   "flaeche_bis": 41,
+   "mittel": 13.5,
+   "von": 9.48,
+   "bis": 16.06
+  },
+  {
+   "baujahr_von": 1961,
+   "baujahr_bis": 1967,
+   "lage": "gut",
+   "flaeche_von": 0,
+   "flaeche_bis": 41,
+   "mittel": 12.89,
+   "von": 11.06,
+   "bis": 15.66
+  },
+  {
+   "baujahr_von": 1968,
+   "baujahr_bis": 1977,
+   "lage": "gut",
+   "flaeche_von": 0,
+   "flaeche_bis": 41,
+   "mittel": 13.46,
+   "von": 11.48,
+   "bis": 17.67
+  },
+  {
+   "baujahr_von": 1978,
+   "baujahr_bis": 1993,
+   "lage": "gut",
+   "flaeche_von": 0,
+   "flaeche_bis": 41,
+   "mittel": 13.74,
+   "von": 9.24,
+   "bis": 16.1
+  },
+  {
+   "baujahr_von": 1994,
+   "baujahr_bis": 2010,
+   "lage": "gut",
+   "flaeche_von": 0,
+   "flaeche_bis": 41,
+   "mittel": 14.19,
+   "von": 12.02,
+   "bis": 17.11
+  },
+  {
+   "baujahr_von": 2011,
+   "baujahr_bis": 2015,
+   "lage": "gut",
+   "flaeche_von": 0,
+   "flaeche_bis": 41,
+   "mittel": 15.91,
+   "von": 14.05,
+   "bis": 19.91
+  },
+  {
+   "baujahr_von": 2016,
+   "baujahr_bis": 2020,
+   "lage": "gut",
+   "flaeche_von": 0,
+   "flaeche_bis": 41,
+   "mittel": 19.37,
+   "von": 16.77,
+   "bis": 25.04
+  },
+  {
+   "baujahr_von": null,
+   "baujahr_bis": 1918,
+   "lage": "gut",
+   "flaeche_von": 41,
+   "flaeche_bis": 66,
+   "mittel": 12.93,
+   "von": 10.8,
+   "bis": 16.56
+  },
+  {
+   "baujahr_von": 1919,
+   "baujahr_bis": 1948,
+   "lage": "gut",
+   "flaeche_von": 41,
+   "flaeche_bis": 66,
+   "mittel": 11.41,
+   "von": 9.3,
+   "bis": 14.73
+  },
+  {
+   "baujahr_von": 1948,
+   "baujahr_bis": 1960,
+   "lage": "gut",
+   "flaeche_von": 41,
+   "flaeche_bis": 66,
+   "mittel": 11.04,
+   "von": 8.34,
+   "bis": 14.83
+  },
+  {
+   "baujahr_von": 1961,
+   "baujahr_bis": 1967,
+   "lage": "gut",
+   "flaeche_von": 41,
+   "flaeche_bis": 66,
+   "mittel": 10.48,
+   "von": 7.97,
+   "bis": 14.02
+  },
+  {
+   "baujahr_von": 1968,
+   "baujahr_bis": 1977,
+   "lage": "gut",
+   "flaeche_von": 41,
+   "flaeche_bis": 66,
+   "mittel": 12.43,
+   "von": 9.05,
+   "bis": 16.47
+  },
+  {
+   "baujahr_von": 1978,
+   "baujahr_bis": 1993,
+   "lage": "gut",
+   "flaeche_von": 41,
+   "flaeche_bis": 66,
+   "mittel": 11.95,
+   "von": 9.06,
+   "bis": 15.45
+  },
+  {
+   "baujahr_von": 1994,
+   "baujahr_bis": 2010,
+   "lage": "gut",
+   "flaeche_von": 41,
+   "flaeche_bis": 66,
+   "mittel": 13.78,
+   "von": 10.72,
+   "bis": 15.76
+  },
+  {
+   "baujahr_von": 2011,
+   "baujahr_bis": 2015,
+   "lage": "gut",
+   "flaeche_von": 41,
+   "flaeche_bis": 66,
+   "mittel": 16.12,
+   "von": 13.2,
+   "bis": 18.69
+  },
+  {
+   "baujahr_von": 2016,
+   "baujahr_bis": 2020,
+   "lage": "gut",
+   "flaeche_von": 41,
+   "flaeche_bis": 66,
+   "mittel": 16.08,
+   "von": 13.17,
+   "bis": 20.3
+  },
+  {
+   "baujahr_von": 2021,
+   "baujahr_bis": 2024,
+   "lage": "gut",
+   "flaeche_von": 41,
+   "flaeche_bis": 66,
+   "mittel": 20.24,
+   "von": 15.65,
+   "bis": 31.65
+  },
+  {
+   "baujahr_von": null,
+   "baujahr_bis": 1918,
+   "lage": "gut",
+   "flaeche_von": 66,
+   "flaeche_bis": 91,
+   "mittel": 13.62,
+   "von": 10.97,
+   "bis": 17.04
+  },
+  {
+   "baujahr_von": 1919,
+   "baujahr_bis": 1948,
+   "lage": "gut",
+   "flaeche_von": 66,
+   "flaeche_bis": 91,
+   "mittel": 11.74,
+   "von": 8.53,
+   "bis": 16.0
+  },
+  {
+   "baujahr_von": 1948,
+   "baujahr_bis": 1960,
+   "lage": "gut",
+   "flaeche_von": 66,
+   "flaeche_bis": 91,
+   "mittel": 11.42,
+   "von": 8.44,
+   "bis": 14.96
+  },
+  {
+   "baujahr_von": 1961,
+   "baujahr_bis": 1967,
+   "lage": "gut",
+   "flaeche_von": 66,
+   "flaeche_bis": 91,
+   "mittel": 9.48,
+   "von": 7.4,
+   "bis": 13.5
+  },
+  {
+   "baujahr_von": 1968,
+   "baujahr_bis": 1977,
+   "lage": "gut",
+   "flaeche_von": 66,
+   "flaeche_bis": 91,
+   "mittel": 11.39,
+   "von": 7.83,
+   "bis": 15.28
+  },
+  {
+   "baujahr_von": 1978,
+   "baujahr_bis": 1993,
+   "lage": "gut",
+   "flaeche_von": 66,
+   "flaeche_bis": 91,
+   "mittel": 12.04,
+   "von": 8.62,
+   "bis": 15.92
+  },
+  {
+   "baujahr_von": 1994,
+   "baujahr_bis": 2010,
+   "lage": "gut",
+   "flaeche_von": 66,
+   "flaeche_bis": 91,
+   "mittel": 13.18,
+   "von": 10.03,
+   "bis": 16.29
+  },
+  {
+   "baujahr_von": 2011,
+   "baujahr_bis": 2015,
+   "lage": "gut",
+   "flaeche_von": 66,
+   "flaeche_bis": 91,
+   "mittel": 16.07,
+   "von": 13.63,
+   "bis": 18.44
+  },
+  {
+   "baujahr_von": 2016,
+   "baujahr_bis": 2020,
+   "lage": "gut",
+   "flaeche_von": 66,
+   "flaeche_bis": 91,
+   "mittel": 16.43,
+   "von": 13.89,
+   "bis": 20.25
+  },
+  {
+   "baujahr_von": 2021,
+   "baujahr_bis": 2024,
+   "lage": "gut",
+   "flaeche_von": 66,
+   "flaeche_bis": 91,
+   "mittel": 18.38,
+   "von": 13.96,
+   "bis": 24.7
+  },
+  {
+   "baujahr_von": null,
+   "baujahr_bis": 1918,
+   "lage": "gut",
+   "flaeche_von": 91,
+   "flaeche_bis": 131,
+   "mittel": 12.54,
+   "von": 10.47,
+   "bis": 16.95
+  },
+  {
+   "baujahr_von": 1919,
+   "baujahr_bis": 1948,
+   "lage": "gut",
+   "flaeche_von": 91,
+   "flaeche_bis": 131,
+   "mittel": 11.5,
+   "von": 8.59,
+   "bis": 14.8
+  },
+  {
+   "baujahr_von": 1948,
+   "baujahr_bis": 1960,
+   "lage": "gut",
+   "flaeche_von": 91,
+   "flaeche_bis": 131,
+   "mittel": 13.36,
+   "von": 9.34,
+   "bis": 15.8
+  },
+  {
+   "baujahr_von": 1961,
+   "baujahr_bis": 1967,
+   "lage": "gut",
+   "flaeche_von": 91,
+   "flaeche_bis": 131,
+   "mittel": 11.73,
+   "von": 9.62,
+   "bis": 14.35
+  },
+  {
+   "baujahr_von": 1968,
+   "baujahr_bis": 1977,
+   "lage": "gut",
+   "flaeche_von": 91,
+   "flaeche_bis": 131,
+   "mittel": 12.51,
+   "von": 9.68,
+   "bis": 15.68
+  },
+  {
+   "baujahr_von": 1978,
+   "baujahr_bis": 1993,
+   "lage": "gut",
+   "flaeche_von": 91,
+   "flaeche_bis": 131,
+   "mittel": 12.39,
+   "von": 9.94,
+   "bis": 14.84
+  },
+  {
+   "baujahr_von": 1994,
+   "baujahr_bis": 2010,
+   "lage": "gut",
+   "flaeche_von": 91,
+   "flaeche_bis": 131,
+   "mittel": 14.63,
+   "von": 11.59,
+   "bis": 19.0
+  },
+  {
+   "baujahr_von": 2011,
+   "baujahr_bis": 2015,
+   "lage": "gut",
+   "flaeche_von": 91,
+   "flaeche_bis": 131,
+   "mittel": 15.58,
+   "von": 12.74,
+   "bis": 19.09
+  },
+  {
+   "baujahr_von": 2016,
+   "baujahr_bis": 2020,
+   "lage": "gut",
+   "flaeche_von": 91,
+   "flaeche_bis": 131,
+   "mittel": 16.55,
+   "von": 14.67,
+   "bis": 20.0
+  },
+  {
+   "baujahr_von": 2021,
+   "baujahr_bis": 2024,
+   "lage": "gut",
+   "flaeche_von": 91,
+   "flaeche_bis": 131,
+   "mittel": 19.6,
+   "von": 15.66,
+   "bis": 23.25
+  },
+  {
+   "baujahr_von": null,
+   "baujahr_bis": 1918,
+   "lage": "gut",
+   "flaeche_von": 131,
+   "flaeche_bis": null,
+   "mittel": 12.62,
+   "von": 10.8,
+   "bis": 16.25
+  },
+  {
+   "baujahr_von": 1919,
+   "baujahr_bis": 1948,
+   "lage": "gut",
+   "flaeche_von": 131,
+   "flaeche_bis": null,
+   "mittel": 14.23,
+   "von": 11.52,
+   "bis": 16.82
+  },
+  {
+   "baujahr_von": 1948,
+   "baujahr_bis": 1960,
+   "lage": "gut",
+   "flaeche_von": 131,
+   "flaeche_bis": null,
+   "mittel": 13.02,
+   "von": 12.24,
+   "bis": 17.49
+  },
+  {
+   "baujahr_von": 1968,
+   "baujahr_bis": 1977,
+   "lage": "gut",
+   "flaeche_von": 131,
+   "flaeche_bis": null,
+   "mittel": 13.04,
+   "von": 11.55,
+   "bis": 16.24
+  },
+  {
+   "baujahr_von": 1978,
+   "baujahr_bis": 1993,
+   "lage": "gut",
+   "flaeche_von": 131,
+   "flaeche_bis": null,
+   "mittel": 14.31,
+   "von": 11.04,
+   "bis": 17.84
+  },
+  {
+   "baujahr_von": 1994,
+   "baujahr_bis": 2010,
+   "lage": "gut",
+   "flaeche_von": 131,
+   "flaeche_bis": null,
+   "mittel": 16.0,
+   "von": 12.06,
+   "bis": 19.31
+  },
+  {
+   "baujahr_von": 2011,
+   "baujahr_bis": 2015,
+   "lage": "gut",
+   "flaeche_von": 131,
+   "flaeche_bis": null,
+   "mittel": 18.19,
+   "von": 15.12,
+   "bis": 21.45
+  },
+  {
+   "baujahr_von": 2016,
+   "baujahr_bis": 2020,
+   "lage": "gut",
+   "flaeche_von": 131,
+   "flaeche_bis": null,
+   "mittel": 19.14,
+   "von": 15.96,
+   "bis": 24.59
+  },
+  {
+   "baujahr_von": 2021,
+   "baujahr_bis": 2024,
+   "lage": "gut",
+   "flaeche_von": 131,
+   "flaeche_bis": null,
+   "mittel": 22.34,
+   "von": 17.43,
+   "bis": 25.46
+  }
+ ]
+}
