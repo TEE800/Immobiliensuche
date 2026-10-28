@@ -23,6 +23,12 @@ class Criteria:
 
 
 @dataclass
+class Workplace:
+    name: str
+    address: str
+
+
+@dataclass
 class Config:
     criteria: Criteria
     telegram_token: str = ""
@@ -35,6 +41,8 @@ class Config:
     web_host: str = "0.0.0.0"
     ngrok_domain: str = ""
     push_contact: str = ""
+    workplaces: list[Workplace] = field(default_factory=list)
+    arrival_time: str = "08:00"
 
 
 def load_config(path: str | Path = "config.yaml") -> Config:
@@ -65,6 +73,7 @@ def load_config(path: str | Path = "config.yaml") -> Config:
 
     tg = data.get("telegram", {}) or {}
     web = data.get("app", {}) or {}
+    pendeln = data.get("pendeln", {}) or {}
     return Config(
         criteria=criteria,
         telegram_token=os.environ.get("TELEGRAM_BOT_TOKEN") or tg.get("bot_token", ""),
@@ -77,4 +86,9 @@ def load_config(path: str | Path = "config.yaml") -> Config:
         web_host=str(web.get("host", "0.0.0.0")),
         ngrok_domain=str(web.get("ngrok_domain", "") or ""),
         push_contact=web.get("kontakt_email", ""),
+        workplaces=[
+            Workplace(str(z.get("name", "")), str(z["adresse"]))
+            for z in pendeln.get("ziele", []) or [] if z.get("adresse")
+        ],
+        arrival_time=str(pendeln.get("ankunft", "08:00")),
     )

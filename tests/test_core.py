@@ -219,3 +219,32 @@ def test_details_loaded_only_for_promising_listings(tmp_path):
     assert not storage.seen("test:3")
     run_once(config, storage, [source], [FakeNotifier()])
     assert source.loaded == ["1", "3", "3"]
+
+
+def test_commute_only_for_matches(tmp_path):
+    from mietsuche.config import Workplace
+
+    class FakeTransit:
+        pass
+
+    (tmp_path / "config.yaml").write_text("datenbank: db.sqlite\n")
+    config = load_config(tmp_path / "config.yaml")
+    config.workplaces = [Workplace("Kevin", "Arbeit 1")]
+    storage = Storage(config.database)
+    calls = []
+
+    import mietsuche.main as main_module
+
+    def fake_commute(listing, workplaces, arrival, transit):
+        calls.append(listing.external_id)
+        return [{"name": "Kevin", "minuten": 20, "umstiege": 0, "linien": "S1", "ungefaehr": False}]
+
+    original = main_module.commute_times
+    main_module.commute_times = fake_commute
+    try:
+        run_once(config, storage, [FakeSource([make(), make(external_id="2", rooms=1)])], [FakeNotifier()],
+                 transit=FakeTransit())
+    finally:
+        main_module.commute_times = original
+    assert calls == ["1"]
+    assert json.loads(storage.get("test:1")["data"])["commute"][0]["minuten"] == 20

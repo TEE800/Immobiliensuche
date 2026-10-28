@@ -39,6 +39,8 @@ class Listing:
     contact_name: str | None = None
     contact_company: str | None = None
     available_from: str | None = None
+    # Fahrzeiten zu den Arbeitsorten: [{"name", "minuten", "umstiege", "linien", "ungefaehr"}]
+    commute: list = field(default_factory=list)
     raw: dict = field(default_factory=dict, repr=False)
 
     @property

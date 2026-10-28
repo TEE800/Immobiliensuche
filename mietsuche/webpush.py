@@ -47,6 +47,9 @@ def push_payload(row) -> dict:
     body = " · ".join(facts)
     if row["address"]:
         body = f"{row['address']}\n{body}" if body else row["address"]
+    commute = json.loads(row["data"]).get("commute", [])
+    if commute:
+        body += "\n🚆 " + " · ".join(f"{c['name']} {c['minuten']} Min." for c in commute)
     return {
         "title": row["title"][:120],
         "body": body,

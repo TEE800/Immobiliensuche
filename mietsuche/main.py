@@ -9,6 +9,7 @@ import sys
 import threading
 import time
 
+from .commute import Transitous, commute_times
 from .config import Config, load_config
 from .filters import evaluate, worth_details
 from .letter import load_template, render_letter
@@ -19,12 +20,15 @@ from .telegram import Telegram, format_caption
 log = logging.getLogger("mietsuche")
 
 
-def run_once(config: Config, storage: Storage, sources: list[Source], notifiers: list) -> int:
+def run_once(config: Config, storage: Storage, sources: list[Source], notifiers: list,
+             transit=None) -> int:
     """Führt einen Suchlauf aus und gibt die Zahl neuer Treffer zurück.
 
     Ohne ``notifiers`` werden Treffer nur im Terminal ausgegeben.
     """
     template = load_template(config.letter_file)
+    if config.workplaces and transit is None:
+        transit = Transitous()
     new_matches = 0
     for source in sources:
         try:
@@ -45,6 +49,12 @@ def run_once(config: Config, storage: Storage, sources: list[Source], notifiers:
                     log.warning("%s: Detailseite %s nicht lesbar: %s", source.name, listing.url, e)
                     continue
             verdict = evaluate(listing, config.criteria)
+            if verdict.matches and config.workplaces:
+                try:
+                    listing.commute = commute_times(listing, config.workplaces, config.arrival_time, transit)
+                except Exception as e:
+                    # Ohne Fahrzeit lieber trotzdem melden als den Treffer zurückhalten.
+                    log.warning("Fahrzeit für %s nicht berechnet: %s", listing.url, e)
             letter = render_letter(template, listing) if template and verdict.matches else None
             storage.add(listing, verdict, letter)
             if verdict.matches:

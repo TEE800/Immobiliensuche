@@ -139,6 +139,17 @@ mit ❓, damit man gezielt nachfragen kann.
 - **Miete:** Warmmiete bis `warmmiete_max`. Ist nur die Kaltmiete bekannt,
   zählt `kaltmiete_max_wenn_warm_unbekannt`.
 
+## Fahrzeit zur Arbeit
+
+Unter `pendeln.ziele` in `config.yaml` stehen Arbeitsadressen. Für jeden
+Treffer rechnet die Mietsuche dann über [Transitous](https://transitous.org)
+(kostenlos, ohne Konto) die schnellste Verbindung mit Bus und Bahn zur
+Ankunftszeit `pendeln.ankunft` am nächsten Werktag aus und zeigt sie in der
+App und in der Push-Nachricht. Gesendet werden die Adresse der Anzeige und
+die Koordinaten der Arbeitsorte, keine Namen. Nennt eine Anzeige keine
+Straße, wird ab dem Stadtteil gerechnet und das Ergebnis als „ungefähr“
+markiert.
+
 ## Anschreiben
 
 Platzhalter in `anschreiben.txt`: `{anrede}`, `{name}`, `{titel}`,
