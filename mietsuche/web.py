@@ -105,6 +105,7 @@ def row_to_dict(row, full: bool = False, template: str | None = None) -> dict:
         "notes": row["notes"],
         "first_seen": row["first_seen"],
         "checks": json.loads(row["checks"]),
+        "commute": json.loads(row["data"]).get("commute", []),
     }
     if full:
         listing = json.loads(row["data"])

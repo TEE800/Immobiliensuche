@@ -124,6 +124,22 @@ async function api(path, options = {}) {
   return res.json();
 }
 
+function commuteShort(l) {
+  if (!l.commute || !l.commute.length) return "";
+  return "🚆 " + l.commute.map((c) => `${c.name} ${c.minuten} Min.`).join(" · ");
+}
+
+function commutePanel(l) {
+  if (!l.commute || !l.commute.length) return "";
+  const rows = l.commute.map((c) => {
+    const changes = c.umstiege === 0 ? "ohne Umsteigen" : c.umstiege === 1 ? "1× umsteigen" : `${c.umstiege}× umsteigen`;
+    return `<li><b>${esc(c.name)}:</b> ${c.minuten} Min., ${changes}${c.linien ? " (" + esc(c.linien) + ")" : ""}</li>`;
+  }).join("");
+  const approx = l.commute.some((c) => c.ungefaehr)
+    ? '<div class="meta">Ungefähr: Die Anzeige nennt keine Straße, gerechnet wurde ab dem Stadtteil.</div>' : "";
+  return `<div class="panel"><h3>Bus und Bahn zur Arbeit</h3><ul class="checks">${rows}</ul>${approx}</div>`;
+}
+
 function facts(l) {
   const f = [];
   const de = (n) => n.toLocaleString("de-DE");
@@ -179,6 +195,7 @@ function renderList() {
         <h2>${esc(l.title)}</h2>
         <div class="meta">${esc(l.address || "")}</div>
         <div class="facts">${esc(facts(l))}</div>
+        ${l.commute && l.commute.length ? `<div class="meta">${esc(commuteShort(l))}</div>` : ""}
         <div class="chips"><span class="chip s-${l.status}">${LABELS[l.status]}</span>${chips}
           <span class="chip">${ago(l.first_seen)}</span></div>
       </div></a>${del}</div>`;
@@ -228,6 +245,7 @@ async function renderDetail(key) {
       <textarea id="notes" rows="3" placeholder="z. B. Besichtigung Do 18 Uhr">${esc(l.notes)}</textarea>
     </div>
 
+    ${commutePanel(l)}
     <div class="panel"><h3>Prüfung</h3><ul class="checks">${checks}</ul></div>
     ${l.description ? `<div class="panel"><details><summary>Anzeigentext</summary>
       <p class="desc">${esc(l.description)}</p></details></div>` : ""}

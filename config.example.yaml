@@ -48,6 +48,15 @@ app:
   # Wird von den Push-Diensten bei Problemen kontaktiert.
   kontakt_email: ""
 
+pendeln:
+  # Bei jedem Treffer die Fahrzeit mit Bus und Bahn zu diesen Adressen
+  # anzeigen (berechnet über transitous.org, kostenlos, ohne Konto).
+  # Ankunft am nächsten Werktag zu dieser Uhrzeit.
+  ankunft: "08:00"
+  ziele: []
+  #  - name: Kevin
+  #    adresse: "Musterstraße 1, 20095 Hamburg"
+
 anschreiben_datei: anschreiben.txt
 datenbank: data/mietsuche.sqlite
 
