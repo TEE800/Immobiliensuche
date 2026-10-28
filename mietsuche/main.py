@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import random
 import sys
@@ -13,11 +14,35 @@ from .commute import Transitous, commute_times
 from .config import Config, load_config
 from .filters import evaluate, worth_details
 from .letter import load_template, render_letter
+from .models import Listing
 from .sources import REGISTRY, Source
 from .storage import Storage
 from .telegram import Telegram, format_caption
 
 log = logging.getLogger("mietsuche")
+
+
+def _commute_key(config: Config) -> str:
+    places = ";".join(f"{w.name}={w.address}" for w in config.workplaces)
+    return f"{config.arrival_time}|{places}"
+
+
+def _update_commutes(config: Config, storage: Storage, transit) -> None:
+    """Fahrzeiten für ältere Treffer nachtragen oder nach geänderten Arbeitsorten neu rechnen."""
+    key = _commute_key(config)
+    for row in storage.matches():
+        if row["status"] in ("abgesagt", "uninteressant"):
+            continue
+        data = json.loads(row["data"])
+        if data.get("commute_for") == key:
+            continue
+        try:
+            data["commute"] = commute_times(Listing(**data), config.workplaces, config.arrival_time, transit)
+        except Exception as e:
+            log.warning("Fahrzeit für %s nicht berechnet: %s", row["url"], e)
+            return  # Dienst gerade nicht erreichbar, beim nächsten Lauf weiter.
+        data["commute_for"] = key
+        storage.update_data(row["key"], data)
 
 
 def run_once(config: Config, storage: Storage, sources: list[Source], notifiers: list,
@@ -52,6 +77,7 @@ def run_once(config: Config, storage: Storage, sources: list[Source], notifiers:
             if verdict.matches and config.workplaces:
                 try:
                     listing.commute = commute_times(listing, config.workplaces, config.arrival_time, transit)
+                    listing.commute_for = _commute_key(config)
                 except Exception as e:
                     # Ohne Fahrzeit lieber trotzdem melden als den Treffer zurückhalten.
                     log.warning("Fahrzeit für %s nicht berechnet: %s", listing.url, e)
@@ -60,6 +86,9 @@ def run_once(config: Config, storage: Storage, sources: list[Source], notifiers:
             if verdict.matches:
                 new_matches += 1
                 log.info("Treffer: %s %s", listing.title, listing.url)
+
+    if config.workplaces:
+        _update_commutes(config, storage, transit)
 
     for row in storage.pending_notifications():
         if not notifiers:
