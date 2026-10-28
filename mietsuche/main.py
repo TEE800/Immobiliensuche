@@ -27,7 +27,8 @@ def _commute_key(config: Config) -> str:
         f"{w.name}={w.address}" + "".join(f"@{a.label} {a.clock}" for a in w.arrivals)
         for w in config.workplaces
     )
-    return f"{config.arrival_time}|{places}"
+    # v2: mit Fahrtdetails (schritte), ältere Treffer werden neu gerechnet.
+    return f"v2|{config.arrival_time}|{places}"
 
 
 def _update_commutes(config: Config, storage: Storage, transit) -> None:

@@ -34,6 +34,33 @@ def next_day_at(clock: str, days: tuple[int, ...] = WORKDAYS, now: datetime | No
     return datetime.combine(day, time(hour, minute), BERLIN).astimezone(ZoneInfo("UTC"))
 
 
+def _clock(stamp: str) -> str:
+    return datetime.fromisoformat(stamp.replace("Z", "+00:00")).astimezone(BERLIN).strftime("%H:%M")
+
+
+def _steps(legs: list[dict], goal: str) -> list[dict]:
+    """Die einzelnen Abschnitte einer Verbindung, kurz für die Anzeige."""
+    names = {"START": "Wohnung", "END": goal}
+    steps = []
+    for leg in legs:
+        step = {
+            "ab": _clock(leg["startTime"]),
+            "an": _clock(leg["endTime"]),
+            "von": names.get(leg["from"]["name"], leg["from"]["name"]),
+            "nach": names.get(leg["to"]["name"], leg["to"]["name"]),
+            "minuten": round(leg.get("duration", 0) / 60),
+        }
+        if leg.get("mode") == "WALK":
+            step["linie"] = "zu Fuß"
+            if leg.get("distance"):
+                step["meter"] = round(leg["distance"])
+        else:
+            step["linie"] = _lines({"legs": [leg]})
+            step["richtung"] = leg.get("headsign", "")
+        steps.append(step)
+    return steps
+
+
 def _lines(itinerary: dict) -> str:
     parts = []
     for leg in itinerary.get("legs", []):
@@ -61,7 +88,8 @@ class Transitous:
             self._places[text] = (hits[0]["lat"], hits[0]["lon"]) if hits else None
         return self._places[text]
 
-    def plan(self, start: tuple[float, float], goal: tuple[float, float], arrive: datetime) -> dict | None:
+    def plan(self, start: tuple[float, float], goal: tuple[float, float], arrive: datetime,
+             goal_name: str = "Arbeit") -> dict | None:
         r = self.client.get(f"{API}/v5/plan", params={
             "fromPlace": f"{start[0]},{start[1]}",
             "toPlace": f"{goal[0]},{goal[1]}",
@@ -71,12 +99,14 @@ class Transitous:
         r.raise_for_status()
         data = r.json()
         options = [
-            {"minuten": round(it["duration"] / 60), "umstiege": it.get("transfers", 0), "linien": _lines(it)}
+            {"minuten": round(it["duration"] / 60), "umstiege": it.get("transfers", 0), "linien": _lines(it),
+             "schritte": _steps(it.get("legs", []), goal_name)}
             for it in data.get("itineraries", [])
         ]
         # Zu Fuß ist manchmal schneller als jede Bahn.
         options += [
-            {"minuten": round(it["duration"] / 60), "umstiege": 0, "linien": "zu Fuß"}
+            {"minuten": round(it["duration"] / 60), "umstiege": 0, "linien": "zu Fuß",
+             "schritte": _steps(it.get("legs", []), goal_name)}
             for it in data.get("direct", [])
             if all(leg.get("mode") == "WALK" for leg in it.get("legs", []))
         ]
@@ -107,7 +137,7 @@ def commute_times(listing: Listing, workplaces: list[Workplace], arrival: str,
             log.warning("Arbeitsort nicht gefunden: %s", work.name)
             continue
         for when in work.arrivals or [Arrival(WORKDAYS, arrival)]:
-            best = service.plan(start, goal, next_day_at(when.clock, when.days))
+            best = service.plan(start, goal, next_day_at(when.clock, when.days), f"Arbeit {work.name}")
             if best:
                 results.append({"name": work.name, "tage": when.label, "ankunft": when.clock,
                                 **best, "ungefaehr": approx})

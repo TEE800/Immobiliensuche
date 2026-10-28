@@ -70,6 +70,8 @@
   .statuses button.on { background: var(--accent); color: var(--accent-text); }
   .back { background: none; padding: 6px 0; color: var(--accent); }
   details summary { cursor: pointer; color: var(--muted); }
+  .trip ul { margin: 4px 0 0; padding-left: 18px; }
+  .trip li { padding: 3px 0; }
   .desc { white-space: pre-wrap; font-size: 14px; }
   .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--text);
     color: var(--bg); padding: 10px 16px; border-radius: 10px; opacity: 0; transition: opacity .2s;
@@ -134,12 +136,25 @@ function commuteShort(l) {
   return "🚆 " + [...byName].map(([name, times]) => `${name} ${times.join(", ")}`).join(" · ");
 }
 
+function tripSteps(c) {
+  if (!c.schritte || !c.schritte.length) return "";
+  const rows = c.schritte.map((s) => {
+    if (s.linie === "zu Fuß") {
+      const dist = s.meter ? `, ${s.meter} m` : "";
+      return `<li>${esc(s.ab)}–${esc(s.an)} 🚶 zu Fuß ${s.minuten} Min.${dist}: ${esc(s.von)} → ${esc(s.nach)}</li>`;
+    }
+    const dir = s.richtung ? ` Richtung ${esc(s.richtung)}` : "";
+    return `<li>${esc(s.ab)} ab ${esc(s.von)}: <b>${esc(s.linie)}</b>${dir}<br>${esc(s.an)} an ${esc(s.nach)}</li>`;
+  }).join("");
+  return `<details class="trip"><summary>Fahrtdetails</summary><ul>${rows}</ul></details>`;
+}
+
 function commutePanel(l) {
   if (!l.commute || !l.commute.length) return "";
   const rows = l.commute.map((c) => {
     const changes = c.umstiege === 0 ? "ohne Umsteigen" : c.umstiege === 1 ? "1× umsteigen" : `${c.umstiege}× umsteigen`;
     const when = c.tage ? ` (${esc(c.tage)}, Ankunft ${esc(c.ankunft.replace(/^0/, ""))} Uhr)` : "";
-    return `<li><b>${esc(c.name)}${when}:</b> ${c.minuten} Min., ${changes}${c.linien ? " (" + esc(c.linien) + ")" : ""}</li>`;
+    return `<li><b>${esc(c.name)}${when}:</b> ${c.minuten} Min., ${changes}${c.linien ? " (" + esc(c.linien) + ")" : ""}${tripSteps(c)}</li>`;
   }).join("");
   const approx = l.commute.some((c) => c.ungefaehr)
     ? '<div class="meta">Ungefähr: Die Anzeige nennt keine Straße, gerechnet wurde ab dem Stadtteil.</div>' : "";

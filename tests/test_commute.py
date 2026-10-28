@@ -14,6 +14,13 @@ PLACES = {
 }
 
 
+def leg(mode, start, end, dep, arr, **extra):
+    t = lambda hm: f"2026-10-29T{hm}:00Z"
+    minutes = (int(arr[:2]) * 60 + int(arr[3:])) - (int(dep[:2]) * 60 + int(dep[3:]))
+    return {"mode": mode, "from": {"name": start}, "to": {"name": end}, "startTime": t(dep),
+            "endTime": t(arr), "duration": minutes * 60, **extra}
+
+
 def handler(request: httpx.Request) -> httpx.Response:
     if request.url.path.endswith("/geocode"):
         hit = PLACES.get(request.url.params["text"])
@@ -22,11 +29,14 @@ def handler(request: httpx.Request) -> httpx.Response:
     return httpx.Response(200, json={
         "itineraries": [
             {"duration": 1500, "transfers": 1, "legs": [
-                {"mode": "WALK"}, {"mode": "BUS", "routeShortName": "2"},
-                {"mode": "SUBWAY", "routeShortName": "U3"}, {"mode": "WALK"}]},
-            {"duration": 1800, "transfers": 0, "legs": [{"mode": "SUBURBAN", "routeShortName": "S1"}]},
+                leg("WALK", "START", "Ottensen", "06:35", "06:38", distance=210.4),
+                leg("BUS", "Ottensen", "Altona", "06:38", "06:45", routeShortName="2", headsign="Berliner Tor"),
+                leg("SUBWAY", "Altona", "Rathaus", "06:48", "06:56", routeShortName="U3"),
+                leg("WALK", "Rathaus", "END", "06:56", "07:00")]},
+            {"duration": 1800, "transfers": 0, "legs": [
+                leg("SUBURBAN", "START", "END", "06:30", "07:00", routeShortName="S1")]},
         ],
-        "direct": [{"duration": 4000, "legs": [{"mode": "WALK"}]}],
+        "direct": [{"duration": 4000, "legs": [leg("WALK", "START", "END", "05:53", "07:00")]}],
     })
 
 
@@ -46,7 +56,19 @@ WORK = [Workplace("Kevin", "Arbeit 1, 20095 Hamburg"), Workplace("Fritzi", "Unbe
 
 def test_fastest_connection_per_workplace():
     result = commute_times(listing(), WORK, "08:00", service())
-    assert result == [{"name": "Kevin", "tage": "Mo–Fr", "ankunft": "08:00", "minuten": 25, "umstiege": 1, "linien": "Bus 2, U3", "ungefaehr": False}]
+    steps = result[0].pop("schritte")
+    assert result == [{"name": "Kevin", "tage": "Mo–Fr", "ankunft": "08:00", "minuten": 25, "umstiege": 1,
+                       "linien": "Bus 2, U3", "ungefaehr": False}]
+    # Ortszeit (Winterzeit = UTC+1), START/END mit lesbaren Namen
+    assert steps == [
+        {"ab": "07:35", "an": "07:38", "von": "Wohnung", "nach": "Ottensen", "minuten": 3,
+         "linie": "zu Fuß", "meter": 210},
+        {"ab": "07:38", "an": "07:45", "von": "Ottensen", "nach": "Altona", "minuten": 7,
+         "linie": "Bus 2", "richtung": "Berliner Tor"},
+        {"ab": "07:48", "an": "07:56", "von": "Altona", "nach": "Rathaus", "minuten": 8,
+         "linie": "U3", "richtung": ""},
+        {"ab": "07:56", "an": "08:00", "von": "Rathaus", "nach": "Arbeit Kevin", "minuten": 4, "linie": "zu Fuß"},
+    ]
 
 
 def test_without_street_uses_district_and_marks_approximate():
