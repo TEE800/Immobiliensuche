@@ -117,6 +117,13 @@ class Storage:
             "SELECT * FROM listings WHERE matches = 1 ORDER BY first_seen DESC"
         ).fetchall()
 
+    def priced(self) -> list[sqlite3.Row]:
+        """Alle gesehenen Anzeigen mit Kaltmiete und Fläche, für den Preisvergleich."""
+        return self.db.execute(
+            "SELECT key, title, data, rent_cold, living_area, first_seen FROM listings "
+            "WHERE rent_cold IS NOT NULL AND living_area > 0"
+        ).fetchall()
+
     def update_data(self, key: str, data: dict) -> None:
         self.db.execute(
             "UPDATE listings SET data = ?, updated_at = ? WHERE key = ?",

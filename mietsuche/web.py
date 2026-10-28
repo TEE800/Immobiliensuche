@@ -16,6 +16,7 @@ from .config import Config
 from .letter import PLACEHOLDERS, load_template, render_letter
 from .models import Listing
 from .storage import STATUSES, Storage
+from .vergleich import compare as compare_market, offers as market_offers
 from .webpush import ensure_vapid_key
 
 STATIC = Path(__file__).parent / "static"
@@ -88,7 +89,7 @@ def _secret(directory: Path) -> bytes:
     return path.read_text().strip().encode()
 
 
-def row_to_dict(row, full: bool = False, template: str | None = None) -> dict:
+def row_to_dict(row, full: bool = False, template: str | None = None, pool: list | None = None) -> dict:
     data = {
         "key": row["key"],
         "source": row["source"],
@@ -108,6 +109,8 @@ def row_to_dict(row, full: bool = False, template: str | None = None) -> dict:
         "commute": json.loads(row["data"]).get("commute", []),
         "rent_index": json.loads(row["data"]).get("rent_index", {}),
     }
+    if pool is not None:
+        data["market"] = compare_market({**json.loads(row["data"]), "key": row["key"]}, pool)
     if full:
         listing = json.loads(row["data"])
         # Mit der aktuellen Vorlage neu füllen, damit Änderungen sofort gelten.
@@ -190,14 +193,16 @@ def create_app(config: Config) -> FastAPI:
 
     @app.get("/api/listings")
     def listings():
-        return {"statuses": STATUSES, "listings": [row_to_dict(r) for r in storage.matches()]}
+        pool = market_offers(storage.priced())
+        return {"statuses": STATUSES, "listings": [row_to_dict(r, pool=pool) for r in storage.matches()]}
 
     @app.get("/api/listings/{key}")
     def listing(key: str):
         row = storage.get(key)
         if row is None:
             raise HTTPException(404, "Anzeige nicht gefunden")
-        return row_to_dict(row, full=True, template=load_template(config.letter_file))
+        return row_to_dict(row, full=True, template=load_template(config.letter_file),
+                           pool=market_offers(storage.priced()))
 
     @app.post("/api/listings/{key}")
     def update_listing(key: str, update: StatusUpdate):
@@ -208,7 +213,8 @@ def create_app(config: Config) -> FastAPI:
             storage.set_status(key, update.status or row["status"], update.notes)
         except ValueError as e:
             raise HTTPException(400, str(e))
-        return row_to_dict(storage.get(key), full=True, template=load_template(config.letter_file))
+        return row_to_dict(storage.get(key), full=True, template=load_template(config.letter_file),
+                           pool=market_offers(storage.priced()))
 
     @app.get("/api/vorlage")
     def get_template():

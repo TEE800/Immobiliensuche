@@ -1,0 +1,10 @@
+{
+ "titel": "IB.SH Mietenmonitoring, Medianangebotsmieten 2024",
+ "quelle": "IB.SH Wohnungsmarktprofil 2025 (Abb. 26), https://www.ib-sh.de/fileadmin/user_upload/downloads/immobilienkunden/wohnungsmarktbeobachtung/staedte_und_gemeinden/",
+ "einheit": "Angebotsmiete nettokalt in Euro je m² (Median), Bestandswohnungen; kein Mietspiegel",
+ "orte": {
+  "Schenefeld": {"alle": 12.14, "groessen": [[0, 40, 13.18], [40, 60, 11.83], [60, 80, 12.00], [80, null, 12.16]]},
+  "Halstenbek": {"alle": 12.00, "groessen": [[0, 40, 11.47], [40, 60, 12.00], [60, 80, 12.35], [80, null, 11.68]]}
+ },
+ "neubau_kreis_pinneberg": 14.68
+}

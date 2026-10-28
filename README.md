@@ -164,6 +164,16 @@ zeigt die App die Spanne über alle passenden Felder. Für Häuser sowie
 Schenefeld und Halstenbek gilt der Hamburger Mietenspiegel nicht. Das Ergebnis
 ist eine Orientierung, keine rechtliche Prüfung.
 
+Für Schenefeld und Halstenbek gibt es keinen amtlichen Mietspiegel; dort
+vergleicht die App mit den Median-Angebotsmieten 2024 aus dem
+Wohnungsmarktprofil der IB.SH (`mietsuche/tabellen/ibsh_angebotsmieten_2024.json`).
+
+Zusätzlich zeigt die App für jede Wohnung den Vergleich mit den Anzeigen, die
+sie selbst in den letzten 6 Monaten gesehen hat (Median der Kaltmiete je m²
+im selben Stadtteil und bei ähnlicher Größe, sonst im ganzen Ort; mindestens
+5 Anzeigen; möblierte Wohnungen, WGs und Zwischenmieten zählen nicht mit).
+Das wird nur lokal aus der eigenen Datenbank gerechnet.
+
 ## Anschreiben
 
 Platzhalter in `anschreiben.txt`: `{anrede}`, `{name}`, `{titel}`,

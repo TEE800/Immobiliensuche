@@ -30,7 +30,7 @@ def test_range_when_year_unknown():
 
 
 def test_not_applicable():
-    assert "gilt hier nicht" in compare(flat(city="Schenefeld"), None)["hinweis"]
+    assert "gilt hier nicht" in compare(flat(city="Pinneberg"), None)["hinweis"]
     assert "Häuser" in compare(flat(property_type="haus"), None)["hinweis"]
     assert "fehlt" in compare(flat(living_area=None), None)["hinweis"]
     assert "neuer" in compare(flat(year_built=2026), None)["hinweis"]
@@ -70,3 +70,13 @@ def test_wohnlage_by_house_number(monkeypatch):
     assert lagen.lookup("Teststraße", "22765") is None
     assert lagen.lookup(None, "22765") is None
     assert len(seen) == 1 and "Teststraße" in seen[0] and "22765" in seen[0]
+
+
+def test_offers_outside_hamburg():
+    # Schenefeld, ab 80 m²: Median 12,16 €/m² (IB.SH 2024)
+    result = compare(flat(city="Schenefeld", zip_code="22869", rent_cold=1100, living_area=88), None)
+    assert result["art"] == "angebote"
+    assert (result["median"], result["qm"], result["abweichung"]) == (12.16, 12.5, 3)
+    assert "Kein amtlicher Mietspiegel" in result["hinweis"]
+    new = compare(flat(city="Halstenbek", zip_code="25469", year_built=2023), None)
+    assert new["median"] == 14.68 and "Neubau" in new["gruppe"]

@@ -131,9 +131,12 @@ async function api(path, options = {}) {
 
 const euroQm = (n) => n.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €/m²";
 
+const pct = (n) => `${n > 0 ? "+" : ""}${n} %`;
+
 function rentShort(l) {
   const r = l.rent_index;
   if (!r || !r.qm) return "";
+  if (r.art === "angebote") return `📊 Ortsdurchschnitt: ${pct(r.abweichung)}`;
   if (r.abweichung !== undefined) {
     const sign = r.abweichung > 0 ? "+" : "";
     return `📊 Mietenspiegel: ${sign}${r.abweichung} % zum Mittel`;
@@ -148,6 +151,14 @@ function rentPanel(l) {
   let body;
   if (!r.qm) {
     body = `<p>${esc(r.hinweis)}</p>`;
+  } else if (r.art === "angebote") {
+    body = `<ul class="checks">
+      <li><b>Diese Wohnung:</b> ${euroQm(r.qm)} kalt</li>
+      <li><b>Durchschnitt der Anzeigen:</b> ${euroQm(r.median)} (${esc(r.gruppe)})</li>
+      <li><b>Abweichung:</b> ${pct(r.abweichung)}</li>
+    </ul>
+    <div class="meta">${esc(r.hinweis)} Quelle: Wohnungsmarktprofil 2025 der Investitionsbank
+      Schleswig-Holstein. Nur eine Orientierung.</div>`;
   } else {
     const known = [r.lage ? `${r.lage === "gut" ? "gute" : "normale"} Wohnlage` : "Wohnlage unbekannt",
                    r.baujahr ? `Baujahr ${r.baujahr}` : "Baujahr unbekannt"].join(", ");
@@ -164,7 +175,7 @@ function rentPanel(l) {
     <div class="meta">Gerechnet mit: ${esc(known)}. Hamburger Mietenspiegel 2025, Kaltmiete ohne Nebenkosten.
       Nur eine Orientierung, keine rechtliche Prüfung. Bei deutlich höherer Miete kann der Mieterverein helfen.</div>`;
   }
-  return `<div class="panel"><h3>Mietenspiegel</h3>${body}</div>`;
+  return `<div class="panel"><h3>${r.art === "angebote" ? "Preis im Ortsvergleich" : "Mietenspiegel"}</h3>${body}</div>`;
 }
 
 function places(l) {
@@ -201,6 +212,26 @@ function drawMap(l) {
   }
   map.fitBounds(points, { padding: [30, 30] });
   home.bringToFront();
+}
+
+function marketShort(l) {
+  const m = l.market;
+  if (!m || !m.median) return "";
+  return `📈 Andere Anzeigen: ${pct(m.abweichung)}`;
+}
+
+function marketPanel(l) {
+  const m = l.market;
+  if (!m || (!m.median && !m.zu_wenige)) return "";
+  const body = m.median ? `<ul class="checks">
+      <li><b>Diese Wohnung:</b> ${euroQm(m.qm)} kalt</li>
+      <li><b>Mittlerer Preis ähnlicher Anzeigen:</b> ${euroQm(m.median)}</li>
+      <li><b>Abweichung:</b> ${pct(m.abweichung)}</li>
+    </ul>
+    <div class="meta">Verglichen mit ${m.anzahl} Anzeigen (${esc(m.gruppe)}) der letzten 6 Monate, die die Mietsuche
+      selbst gesammelt hat. ${m.wenige ? "Noch wenige Vergleichsanzeigen, der Wert wird mit der Zeit genauer." : ""}</div>`
+    : `<p>Noch zu wenige Vergleichsanzeigen (${m.anzahl}). Der Vergleich erscheint, sobald mehr gesammelt sind.</p>`;
+  return `<div class="panel"><h3>Vergleich mit anderen Anzeigen</h3>${body}</div>`;
 }
 
 function commuteShort(l) {
@@ -294,7 +325,7 @@ function renderList() {
         <div class="meta">${esc(l.address || "")}</div>
         <div class="facts">${esc(facts(l))}</div>
         ${l.commute && l.commute.length ? `<div class="meta">${esc(commuteShort(l))}</div>` : ""}
-        ${rentShort(l) ? `<div class="meta">${esc(rentShort(l))}</div>` : ""}
+        ${rentShort(l) || marketShort(l) ? `<div class="meta">${esc([rentShort(l), marketShort(l)].filter(Boolean).join(" · "))}</div>` : ""}
         <div class="chips"><span class="chip s-${l.status}">${LABELS[l.status]}</span>${chips}
           <span class="chip">${ago(l.first_seen)}</span></div>
       </div></a>${del}</div>`;
@@ -347,6 +378,7 @@ async function renderDetail(key) {
     ${mapPanel(l)}
     ${commutePanel(l)}
     ${rentPanel(l)}
+    ${marketPanel(l)}
     <div class="panel"><h3>Prüfung</h3><ul class="checks">${checks}</ul></div>
     ${l.description ? `<div class="panel"><details><summary>Anzeigentext</summary>
       <p class="desc">${esc(l.description)}</p></details></div>` : ""}
