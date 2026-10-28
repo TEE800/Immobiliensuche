@@ -521,13 +521,14 @@ async function setupPush() {
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
   const reg = await navigator.serviceWorker.register("/sw.js");
   const existing = await reg.pushManager.getSubscription();
+  const btn = $("#push");
+  btn.hidden = false;
   if (existing && Notification.permission === "granted") {
     // Bei jedem Start erneut melden, falls der Server die Anmeldung verloren hat.
     api("/api/push/subscribe", { method: "POST", body: JSON.stringify(existing) }).catch(() => {});
+    showTestButton(btn);
     return;
   }
-  const btn = $("#push");
-  btn.hidden = false;
   btn.onclick = async () => {
     if (await Notification.requestPermission() !== "granted") {
       toast("Benachrichtigungen wurden nicht erlaubt");
@@ -537,8 +538,18 @@ async function setupPush() {
     const sub = await reg.pushManager.subscribe({
       userVisibleOnly: true, applicationServerKey: b64ToBytes(publicKey) });
     await api("/api/push/subscribe", { method: "POST", body: JSON.stringify(sub) });
-    btn.hidden = true;
     toast("Push-Nachrichten sind aktiv");
+    showTestButton(btn);
+  };
+}
+
+function showTestButton(btn) {
+  btn.textContent = "🔔 Push testen";
+  btn.onclick = async () => {
+    try {
+      await api("/api/push/test", { method: "POST" });
+      toast("Test geschickt. Kommt nichts an, Benachrichtigungen am Handy prüfen.");
+    } catch (e) { if (e.message !== "login") toast(e.message); }
   };
 }
 

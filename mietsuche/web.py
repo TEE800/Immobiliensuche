@@ -20,7 +20,7 @@ from .letter import PLACEHOLDERS, load_template, render_letter
 from .models import Listing
 from .storage import STATUSES, Storage
 from .vergleich import compare as compare_market, offers as market_offers
-from .webpush import ensure_vapid_key
+from .webpush import WebPush, ensure_vapid_key
 
 STATIC = Path(__file__).parent / "static"
 COOKIE = "mietsuche"
@@ -142,7 +142,7 @@ class StatusUpdate(BaseModel):
 def create_app(config: Config) -> FastAPI:
     data_dir = config.database.parent
     passwords = Passwords(config.web_password, data_dir, _secret(data_dir))
-    _, public_key = ensure_vapid_key(data_dir)
+    private_key, public_key = ensure_vapid_key(data_dir)
     storage = Storage(config.database)
     image_dir = data_dir / "bilder"
 
@@ -259,6 +259,15 @@ def create_app(config: Config) -> FastAPI:
         if not isinstance(sub, dict) or "endpoint" not in sub or "keys" not in sub:
             raise HTTPException(400, "Ungültige Anmeldung")
         storage.add_push_subscription(sub)
+        return {"ok": True}
+
+    @app.post("/api/push/test")
+    def push_test():
+        try:
+            WebPush(storage, private_key, config.push_contact).send(
+                {"title": "Mietsuche", "body": "Test: Push-Nachrichten kommen an.", "url": "/", "tag": "test"})
+        except RuntimeError as e:
+            raise HTTPException(502, str(e))
         return {"ok": True}
 
     return app

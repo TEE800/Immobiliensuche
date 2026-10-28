@@ -6,6 +6,7 @@ import base64
 import json
 import logging
 from pathlib import Path
+from urllib.parse import urlparse
 
 from cryptography.hazmat.primitives import serialization
 from py_vapid import Vapid01
@@ -14,6 +15,9 @@ from pywebpush import WebPushException, webpush
 from .storage import Storage
 
 log = logging.getLogger("mietsuche")
+
+# So lange hält der Push-Dienst eine Nachricht vor, wenn das Gerät nicht erreichbar ist.
+TTL = 24 * 3600
 
 
 def ensure_vapid_key(directory: Path) -> tuple[Path, str]:
@@ -66,22 +70,31 @@ class WebPush:
         self.claims = {"sub": f"mailto:{contact}" if contact else "mailto:mietsuche@example.org"}
 
     def notify(self, row) -> None:
+        self.send(push_payload(row))
+
+    def send(self, payload: dict) -> None:
         subscriptions = self.storage.push_subscriptions()
         if not subscriptions:
             raise RuntimeError("Noch kein Gerät für Push-Nachrichten angemeldet.")
-        data = json.dumps(push_payload(row), ensure_ascii=False)
+        data = json.dumps(payload, ensure_ascii=False)
         delivered = 0
         for sub in subscriptions:
+            host = urlparse(sub["endpoint"]).hostname
             try:
-                webpush(sub, data, vapid_private_key=self.private_key, vapid_claims=dict(self.claims))
+                # Ohne TTL verwirft der Push-Dienst die Nachricht, wenn das Handy gerade schläft.
+                webpush(sub, data, vapid_private_key=self.private_key, vapid_claims=dict(self.claims),
+                        ttl=TTL, headers={"Urgency": "high"})
                 delivered += 1
+                log.info("Push an %s zugestellt", host)
             except WebPushException as e:
                 status = getattr(e.response, "status_code", None)
-                if status in (404, 410):
-                    # Abmeldung im Browser oder App gelöscht.
+                if status in (400, 403, 404, 410):
+                    # Abgemeldet, App gelöscht oder ungültig. Die App meldet sich beim
+                    # nächsten Öffnen von selbst wieder an.
                     self.storage.remove_push_subscription(sub["endpoint"])
+                    log.warning("Push an %s abgelehnt (%s), Anmeldung entfernt", host, status)
                 else:
-                    log.warning("Push an %s fehlgeschlagen: %s", sub["endpoint"][:60], e)
+                    log.warning("Push an %s fehlgeschlagen: %s", host, e)
         if not delivered:
             raise RuntimeError("Push an kein Gerät zugestellt.")
 
