@@ -78,3 +78,20 @@ def year_from_text(text: str) -> int | None:
     """Baujahr aus dem Anzeigentext, z. B. „Baujahr: 1928“ oder „Bj. ca. 1965“."""
     m = _YEAR.search(text or "")
     return int(m.group(1)) if m else None
+
+
+_GONE_TEXT = re.compile(r"Anzeige ist nicht mehr verfügbar|Anzeige wurde gelöscht|bereits gelöscht|"
+                        r"nicht mehr online|nicht mehr aktiv", re.I)
+
+
+def still_online(fetcher: "Fetcher", url: str, path: str) -> bool:
+    """Prüft eine Anzeige: weg bei 404/410, bei Weiterleitung weg von ``path``
+    (Kleinanzeigen leitet gelöschte Anzeigen auf eine Suche um) oder bei einem
+    Hinweis auf der Seite. Andere Fehler werfen, damit später neu geprüft wird."""
+    response = fetcher.get(url)
+    if response.status_code in (404, 410):
+        return False
+    response.raise_for_status()
+    if path not in str(response.url):
+        return False
+    return not _GONE_TEXT.search(response.text[:200000])

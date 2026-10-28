@@ -9,6 +9,7 @@ import random
 import sys
 import threading
 import time
+from datetime import datetime, timedelta, timezone
 
 from .commute import Transitous, commute_times
 from .config import Config, load_config
@@ -74,6 +75,46 @@ def _update_rent_index(storage: Storage, lagen: Wohnlagen) -> None:
         storage.update_data(row["key"], data)
 
 
+# Treffer, die nicht mehr in der Suche auftauchen, werden höchstens so oft
+# einzeln nachgeprüft, und pro Lauf nur ein paar, um die Portale zu schonen.
+ONLINE_CHECK_HOURS = 6
+ONLINE_CHECKS_PER_RUN = 10
+
+
+def _check_online(storage: Storage, sources: dict[str, Source], found: set[str]) -> None:
+    """Merkt sich Treffer, deren Anzeige gelöscht wurde („Nicht mehr online“)."""
+    now = datetime.now(timezone.utc)
+    checks = 0
+    for row in storage.matches():
+        source = sources.get(row["source"])
+        if source is None or row["status"] in ("abgesagt", "uninteressant"):
+            continue
+        data = json.loads(row["data"])
+        if row["key"] in found:
+            if data.pop("offline_seit", None):  # wieder aufgetaucht
+                storage.update_data(row["key"], data)
+            continue
+        checked = data.get("online_geprueft")
+        if data.get("offline_seit") or (
+                checked and now - datetime.fromisoformat(checked) < timedelta(hours=ONLINE_CHECK_HOURS)):
+            continue
+        if checks >= ONLINE_CHECKS_PER_RUN:
+            break
+        checks += 1
+        try:
+            online = source.is_online(row["url"])
+        except Exception as e:
+            log.warning("Konnte nicht prüfen, ob %s noch online ist: %s", row["url"], e)
+            continue
+        if online is None:
+            continue
+        data["online_geprueft"] = now.isoformat(timespec="seconds")
+        if not online:
+            data["offline_seit"] = data["online_geprueft"]
+            log.info("Nicht mehr online: %s", row["url"])
+        storage.update_data(row["key"], data)
+
+
 def run_once(config: Config, storage: Storage, sources: list[Source], notifiers: list,
              transit=None, lagen: Wohnlagen | None = None) -> int:
     """Führt einen Suchlauf aus und gibt die Zahl neuer Treffer zurück.
@@ -85,6 +126,8 @@ def run_once(config: Config, storage: Storage, sources: list[Source], notifiers:
         transit = Transitous()
     lagen = lagen or Wohnlagen()
     new_matches = 0
+    found: set[str] = set()
+    searched: dict[str, Source] = {}
     for source in sources:
         try:
             listings = source.search(config.criteria)
@@ -93,6 +136,8 @@ def run_once(config: Config, storage: Storage, sources: list[Source], notifiers:
             log.exception("Suche bei %s fehlgeschlagen", source.name)
             continue
         log.info("%s: %d Anzeigen", source.name, len(listings))
+        searched[source.name] = source
+        found.update(listing.key for listing in listings)
         for listing in listings:
             if storage.seen(listing.key):
                 continue
@@ -123,6 +168,7 @@ def run_once(config: Config, storage: Storage, sources: list[Source], notifiers:
     if config.workplaces:
         _update_commutes(config, storage, transit)
     _update_rent_index(storage, lagen)
+    _check_online(storage, searched, found)
 
     for row in storage.pending_notifications():
         if not notifiers:

@@ -108,6 +108,7 @@ def row_to_dict(row, full: bool = False, template: str | None = None, pool: list
         "checks": json.loads(row["checks"]),
         "commute": json.loads(row["data"]).get("commute", []),
         "rent_index": json.loads(row["data"]).get("rent_index", {}),
+        "offline": json.loads(row["data"]).get("offline_seit"),
     }
     if pool is not None:
         data["market"] = compare_market({**json.loads(row["data"]), "key": row["key"]}, pool)

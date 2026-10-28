@@ -42,5 +42,9 @@ class Source(ABC):
         """
         return listing
 
+    def is_online(self, url: str) -> bool | None:
+        """Gibt es die Anzeige noch? ``None``, wenn das Portal das nicht prüfen kann."""
+        return None
+
 
 from . import kleinanzeigen, ohne_makler  # noqa: E402,F401  (tragen sich in REGISTRY ein)
