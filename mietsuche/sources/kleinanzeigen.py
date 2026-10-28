@@ -150,6 +150,11 @@ def parse_details(html: str, listing: Listing) -> Listing:
     contact_el = soup.select_one(".userprofile-vip")
     month, year = attrs.get("verfuegbarm_i"), attrs.get("verfuegbary_i")
     price = number(soup.find(id="viewad-price").get_text()) if soup.find(id="viewad-price") else None
+    images = list(dict.fromkeys(
+        img.get("data-imgsrc") or img.get("src") for img in soup.select(".galleryimage-element img")
+        if img.get("data-imgsrc") or img.get("src")
+    ))
+    since = re.search(r"Aktiv seit (\d\d)\.(\d\d)\.(\d{4})", soup.get_text(" "))
 
     return dataclasses.replace(
         listing,
@@ -168,6 +173,8 @@ def parse_details(html: str, listing: Listing) -> Listing:
         balcony=True if flag("balcony_b") or flag("terrace_b") else None,
         description=description,
         contact_name=clean(contact_el.get_text()) if contact_el else None,
+        contact_since=f"{since.group(3)}-{since.group(2)}-{since.group(1)}" if since else None,
+        images=images or ([listing.image_url] if listing.image_url else []),
         available_from=f"{month}/{year}" if month and year else None,
         year_built=year_from_text(description),
         raw=attrs,

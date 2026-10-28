@@ -174,6 +174,22 @@ im selben Stadtteil und bei ähnlicher Größe, sonst im ganzen Ort; mindestens
 5 Anzeigen; möblierte Wohnungen, WGs und Zwischenmieten zählen nicht mit).
 Das wird nur lokal aus der eigenen Datenbank gerechnet.
 
+## Bilder
+
+Die Bilder eines Treffers werden einmal heruntergeladen (höchstens 20) und
+liegen unter `data/bilder/`. Die App zeigt sie von dort, weil die Bildadressen
+von Ohne-Makler nach etwa einem Tag ablaufen. Ältere Treffer bekommen ihre
+Bilder nach und nach, pro Suchlauf fünf.
+
+## Auffällige Anzeigen
+
+Die App markiert Treffer mit typischen Merkmalen von Fake-Anzeigen mit
+„⚠️ Auffällig“: Schlüssel per Post, Geld vor der Besichtigung, Airbnb oder
+Western Union, Vermieter im Ausland, keine Besichtigung, Kontakt per WhatsApp
+oder E-Mail-Adresse im Text, englischer Text, Miete weit unter Mietenspiegel
+oder Vergleich, Konto des Anbieters jünger als 30 Tage (nur Kleinanzeigen)
+und keine Fotos. Das sind Warnzeichen, kein Beweis.
+
 ## Anschreiben
 
 Platzhalter in `anschreiben.txt`: `{anrede}`, `{name}`, `{titel}`,

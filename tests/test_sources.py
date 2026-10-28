@@ -97,6 +97,11 @@ KA_DETAIL = """
 <li class="checktag">Haustiere erlaubt</li></ul>
 <p id="viewad-description-text">Ruhige Lage.<br />Neubau.</p>
 <span class="userprofile-vip"><a href="/s-bestandsliste.html?userId=1">Anna Muster</a></span>
+<span class="userprofile-vip-details-text">Aktiv seit 21.12.2023</span>
+<div class="galleryimage-element"><img id="viewad-image" src="https://img.ka/1?rule=$_59.AUTO"
+  data-imgsrc="https://img.ka/1?rule=$_59.AUTO"></div>
+<div class="galleryimage-element"><img id="viewad-image" data-imgsrc="https://img.ka/2?rule=$_59.AUTO"></div>
+<div class="galleryimage-element"><img id="viewad-image" data-imgsrc="https://img.ka/1?rule=$_59.AUTO"></div>
 </body></html>"""
 
 
@@ -111,6 +116,8 @@ def test_kleinanzeigen_details():
     assert full.garden is None and full.garden_maybe_shared
     assert full.warm_rent_estimate == (2450, False)
     assert full.contact_name == "Anna Muster"
+    assert full.contact_since == "2023-12-21"
+    assert full.images == ["https://img.ka/1?rule=$_59.AUTO", "https://img.ka/2?rule=$_59.AUTO"]
     assert full.available_from == "11/2026"
     assert full.description == "Ruhige Lage.\nNeubau.\nAusstattung: Terrasse, Garten/-mitnutzung, Haustiere erlaubt"
     checks = {c.name: c.result for c in evaluate(full, CRITERIA).checks}
@@ -185,7 +192,12 @@ OM_DETAIL = """
 <dt>Infrastruktur</dt><dd>Kindergarten, Grundschule</dd>
 </dl>
 <h3>Lage-Check</h3><p>Natur: Garten der Nachbarn</p>
-</main></body></html>"""
+</main>
+<div x-data="gallery(['https://media.ohne-makler.net/rs:fit:1920:1080/q:90/AAA?sig=x&amp;exp=1',
+  'https://media.ohne-makler.net/rs:fit:1920:1080/q:90/BBB?sig=y&amp;exp=1'])"></div>
+<img src="https://media.ohne-makler.net/rs:fit:1920:1080/q:90/AAA?sig=x&amp;exp=1">
+<img src="https://media.ohne-makler.net/rs:fill:488:288/q:90/ANDERE?sig=z">
+</body></html>"""
 
 
 def test_ohne_makler_search_page():
@@ -199,6 +211,11 @@ def test_ohne_makler_search_page():
     assert not worth_details(listings[1], CRITERIA)
 
 
+def test_ohne_makler_short_address():
+    html = om_list(om_card()).replace('href="/immobilie/194716/"', 'href="/immobilie/3vd6r9/"')
+    assert ohne_makler.parse_search(html, "wohnung")[0].url == "https://www.ohne-makler.net/immobilie/3vd6r9/"
+
+
 def test_ohne_makler_details():
     listing = ohne_makler.parse_search(om_list(om_card()), "wohnung")[0]
     full = ohne_makler.parse_details(OM_DETAIL.format(features="Balkon, Garten, Keller"), listing)
@@ -207,6 +224,8 @@ def test_ohne_makler_details():
     assert full.balcony is True and full.garden_maybe_shared
     assert full.available_from == "1. Januar 2027"
     assert full.year_built == 1972
+    assert full.images == ["https://media.ohne-makler.net/rs:fit:1920:1080/q:90/AAA?sig=x&exp=1",
+                           "https://media.ohne-makler.net/rs:fit:1920:1080/q:90/BBB?sig=y&exp=1"]
     assert "Kindergarten" not in full.description and "Lage-Check" not in full.description
     checks = {c.name: c.result for c in evaluate(full, CRITERIA).checks}
     assert checks["haustiere"] == JA

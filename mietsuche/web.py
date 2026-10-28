@@ -7,11 +7,14 @@ import hmac
 import json
 import secrets
 from pathlib import Path
+from urllib.parse import quote
 
 from fastapi import FastAPI, Form, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from pydantic import BaseModel
 
+from . import bilder
+from .auffaellig import warnings as fake_warnings
 from .config import Config
 from .letter import PLACEHOLDERS, load_template, render_letter
 from .models import Listing
@@ -90,6 +93,8 @@ def _secret(directory: Path) -> bytes:
 
 
 def row_to_dict(row, full: bool = False, template: str | None = None, pool: list | None = None) -> dict:
+    stored = json.loads(row["data"])
+    count = stored.get("bilder") or 0
     data = {
         "key": row["key"],
         "source": row["source"],
@@ -101,7 +106,9 @@ def row_to_dict(row, full: bool = False, template: str | None = None, pool: list
         "living_area": row["living_area"],
         "rent_cold": row["rent_cold"],
         "rent_warm": row["rent_warm"],
-        "image_url": row["image_url"],
+        # Gespeicherte Bilder kommen von der App selbst; die Adressen der Portale laufen ab.
+        "image_url": f"/bilder/{quote(row['key'], safe='')}/1" if count else row["image_url"],
+        "bilder": [f"/bilder/{quote(row['key'], safe='')}/{n}" for n in range(1, count + 1)],
         "status": row["status"],
         "notes": row["notes"],
         "first_seen": row["first_seen"],
@@ -111,11 +118,12 @@ def row_to_dict(row, full: bool = False, template: str | None = None, pool: list
         "offline": json.loads(row["data"]).get("offline_seit"),
     }
     if pool is not None:
-        data["market"] = compare_market({**json.loads(row["data"]), "key": row["key"]}, pool)
+        data["market"] = compare_market({**stored, "key": row["key"]}, pool)
+    data["auffaellig"] = fake_warnings(stored, data.get("market"), row["first_seen"])
     if full:
         listing = json.loads(row["data"])
         # Mit der aktuellen Vorlage neu füllen, damit Änderungen sofort gelten.
-        data["letter"] = render_letter(template, Listing(**listing)) if template else (row["letter"] or "")
+        data["letter"] = render_letter(template, Listing.from_data(listing)) if template else (row["letter"] or "")
         data["description"] = listing.get("description", "")
         data["contact_name"] = row["contact_name"]
         data["available_from"] = listing.get("available_from")
@@ -136,6 +144,7 @@ def create_app(config: Config) -> FastAPI:
     passwords = Passwords(config.web_password, data_dir, _secret(data_dir))
     _, public_key = ensure_vapid_key(data_dir)
     storage = Storage(config.database)
+    image_dir = data_dir / "bilder"
 
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 
@@ -191,6 +200,13 @@ def create_app(config: Config) -> FastAPI:
         if name not in types:
             return JSONResponse({"detail": "Nicht gefunden"}, status_code=404)
         return FileResponse(STATIC / "leaflet" / name, media_type=types[name])
+
+    @app.get("/bilder/{key}/{number}")
+    def image(key: str, number: int):
+        found = bilder.files(image_dir, key)
+        if not 1 <= number <= len(found):
+            raise HTTPException(404, "Bild nicht gefunden")
+        return FileResponse(found[number - 1], headers={"Cache-Control": "private, max-age=86400"})
 
     @app.get("/api/listings")
     def listings():

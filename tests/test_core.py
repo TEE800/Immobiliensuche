@@ -344,3 +344,52 @@ def test_matches_gone_from_portal_are_marked_offline(tmp_path):
     source = Checking([], True)
     run_once(config, storage, [source], [FakeNotifier()])
     assert source.checked == [] and main_module.ONLINE_CHECK_HOURS >= 1
+
+
+def test_from_data_ignores_extra_fields():
+    listing = Listing.from_data({**make().__dict__, "offline_seit": "2026-10-28", "bilder": 3})
+    assert listing.key == "test:1"
+
+
+def test_images_saved_for_matches_and_backfilled(tmp_path, monkeypatch):
+    import mietsuche.main as main_module
+
+    saved = []
+
+    def fake_download(base, key, urls, client=None, pause=0.3):
+        saved.append((key, list(urls)))
+        return len(urls)
+
+    monkeypatch.setattr(main_module.bilder, "download", fake_download)
+
+    class WithImages(FakeSource):
+        def details(self, listing):
+            listing.images = ["https://img/1", "https://img/2"]
+            listing.contact_since = "2026-10-20"
+            return listing
+
+    (tmp_path / "config.yaml").write_text("datenbank: db.sqlite\n")
+    config = load_config(tmp_path / "config.yaml")
+    storage = Storage(config.database)
+    run_once(config, storage, [WithImages([make()])], [FakeNotifier()])
+    assert saved == [("test:1", ["https://img/1", "https://img/2"])]
+    assert json.loads(storage.get("test:1")["data"])["bilder"] == 2
+
+    # Älterer Treffer ohne Bilder: Detailseite wird einmal nachgeladen.
+    data = json.loads(storage.get("test:1")["data"])
+    del data["bilder"]
+    storage.update_data("test:1", data)
+    run_once(config, storage, [WithImages([make()])], [FakeNotifier()])
+    run_once(config, storage, [WithImages([make()])], [FakeNotifier()])
+    data = json.loads(storage.get("test:1")["data"])
+    assert len(saved) == 2 and data["bilder"] == 2 and data["contact_since"] == "2026-10-20"
+
+
+def test_new_portal_address_is_remembered(tmp_path):
+    (tmp_path / "config.yaml").write_text("datenbank: db.sqlite\n")
+    config = load_config(tmp_path / "config.yaml")
+    storage = Storage(config.database)
+    run_once(config, storage, [FakeSource([make()])], [FakeNotifier()])
+    run_once(config, storage, [FakeSource([make(url="https://example.org/neu")])], [FakeNotifier()])
+    row = storage.get("test:1")
+    assert row["url"] == json.loads(row["data"])["url"] == "https://example.org/neu"

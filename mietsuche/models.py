@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 
 
 @dataclass
@@ -36,8 +36,12 @@ class Listing:
     balcony_area: float | None = None
     description: str = ""
     image_url: str | None = None
+    # Alle Bilder der Detailseite (Adressen beim Portal, werden lokal gespeichert)
+    images: list = field(default_factory=list)
     contact_name: str | None = None
     contact_company: str | None = None
+    # Seit wann das Konto des Anbieters besteht (ISO-Datum), wenn das Portal es zeigt
+    contact_since: str | None = None
     available_from: str | None = None
     year_built: int | None = None
     # Fahrzeiten zu den Arbeitsorten: [{"name", "minuten", "umstiege", "linien", "ungefaehr"}]
@@ -48,6 +52,12 @@ class Listing:
     rent_index: dict = field(default_factory=dict)
     rent_index_for: str = ""
     raw: dict = field(default_factory=dict, repr=False)
+
+    @classmethod
+    def from_data(cls, data: dict) -> "Listing":
+        """Aus dem gespeicherten JSON; Zusatzangaben wie ``offline_seit`` bleiben außen vor."""
+        names = {f.name for f in fields(cls)}
+        return cls(**{k: v for k, v in data.items() if k in names})
 
     @property
     def key(self) -> str:

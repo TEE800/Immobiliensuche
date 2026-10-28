@@ -11,6 +11,7 @@ import threading
 import time
 from datetime import datetime, timedelta, timezone
 
+from . import bilder
 from .commute import Transitous, commute_times
 from .config import Config, load_config
 from .filters import evaluate, worth_details
@@ -43,7 +44,7 @@ def _update_commutes(config: Config, storage: Storage, transit) -> None:
         if data.get("commute_for") == key:
             continue
         try:
-            data["commute"] = commute_times(Listing(**data), config.workplaces, config.arrival_time, transit)
+            data["commute"] = commute_times(Listing.from_data(data), config.workplaces, config.arrival_time, transit)
         except Exception as e:
             log.warning("Fahrzeit für %s nicht berechnet: %s", row["url"], e)
             return  # Dienst gerade nicht erreichbar, beim nächsten Lauf weiter.
@@ -70,7 +71,7 @@ def _update_rent_index(storage: Storage, lagen: Wohnlagen) -> None:
         data = json.loads(row["data"])
         if data.get("rent_index_for") == RENT_INDEX_VERSION:
             continue
-        data["rent_index"] = _rent_index(Listing(**data), lagen)
+        data["rent_index"] = _rent_index(Listing.from_data(data), lagen)
         data["rent_index_for"] = RENT_INDEX_VERSION
         storage.update_data(row["key"], data)
 
@@ -115,6 +116,41 @@ def _check_online(storage: Storage, sources: dict[str, Source], found: set[str])
         storage.update_data(row["key"], data)
 
 
+# Ältere Treffer bekommen ihre Bilder nach und nach, pro Lauf nur ein paar Detailseiten.
+IMAGE_BACKFILL_PER_RUN = 5
+
+
+def _save_images(base, listing: Listing) -> int:
+    try:
+        return bilder.download(base, listing.key, listing.images)
+    except Exception as e:
+        log.warning("Bilder für %s nicht gespeichert: %s", listing.url, e)
+        return 0
+
+
+def _update_images(storage: Storage, sources: dict[str, Source], base) -> None:
+    """Bilder (und Angaben zum Anbieter) für Treffer von vor dieser Funktion nachladen."""
+    done = 0
+    for row in storage.matches():
+        source = sources.get(row["source"])
+        data = json.loads(row["data"])
+        if (source is None or "bilder" in data or data.get("offline_seit")
+                or row["status"] in ("abgesagt", "uninteressant")):
+            continue
+        if done >= IMAGE_BACKFILL_PER_RUN:
+            break
+        done += 1
+        try:
+            fresh = source.details(Listing.from_data(data))
+        except Exception as e:
+            log.warning("Detailseite %s für Bilder nicht lesbar: %s", row["url"], e)
+            continue
+        data["images"] = fresh.images
+        data["contact_since"] = fresh.contact_since
+        data["bilder"] = _save_images(base, fresh)
+        storage.update_data(row["key"], data)
+
+
 def run_once(config: Config, storage: Storage, sources: list[Source], notifiers: list,
              transit=None, lagen: Wohnlagen | None = None) -> int:
     """Führt einen Suchlauf aus und gibt die Zahl neuer Treffer zurück.
@@ -125,6 +161,7 @@ def run_once(config: Config, storage: Storage, sources: list[Source], notifiers:
     if config.workplaces and transit is None:
         transit = Transitous()
     lagen = lagen or Wohnlagen()
+    image_dir = config.database.parent / "bilder"
     new_matches = 0
     found: set[str] = set()
     searched: dict[str, Source] = {}
@@ -140,6 +177,7 @@ def run_once(config: Config, storage: Storage, sources: list[Source], notifiers:
         found.update(listing.key for listing in listings)
         for listing in listings:
             if storage.seen(listing.key):
+                storage.update_url(listing.key, listing.url)
                 continue
             if worth_details(listing, config.criteria):
                 try:
@@ -162,6 +200,9 @@ def run_once(config: Config, storage: Storage, sources: list[Source], notifiers:
             letter = render_letter(template, listing) if template and verdict.matches else None
             storage.add(listing, verdict, letter)
             if verdict.matches:
+                data = json.loads(storage.get(listing.key)["data"])
+                data["bilder"] = _save_images(image_dir, listing)
+                storage.update_data(listing.key, data)
                 new_matches += 1
                 log.info("Treffer: %s %s", listing.title, listing.url)
 
@@ -169,6 +210,7 @@ def run_once(config: Config, storage: Storage, sources: list[Source], notifiers:
         _update_commutes(config, storage, transit)
     _update_rent_index(storage, lagen)
     _check_online(storage, searched, found)
+    _update_images(storage, searched, image_dir)
 
     for row in storage.pending_notifications():
         if not notifiers:
