@@ -137,20 +137,18 @@ def test_own_arrival_times_per_workplace(tmp_path):
     assert commute_text(result) == "Kevin 25 Min. · Fritzi Di–Fr 25 Min., Sa 25 Min."
 
 
-def test_choose_prefers_short_walks_and_arrival_close_to_target():
+def test_choose_fastest_arriving_close_to_target():
     from datetime import timedelta
     from mietsuche.commute import choose
 
     target = datetime(2026, 10, 31, 7, 30, tzinfo=BERLIN)
 
-    def opt(name, minutes, walk, early):
-        return {"linien": name, "minuten": minutes, "umstiege": 0, "_fuss": walk,
-                "_an": target - timedelta(minutes=early)}
+    def opt(name, minutes, early):
+        return {"linien": name, "minuten": minutes, "umstiege": 0, "_an": target - timedelta(minutes=early)}
 
-    long_walk = opt("S7 + 1 km zu Fuß", 29, 964, 6)
-    bus = opt("S7, Bus 4", 33, 473, 2)
-    too_early = opt("S7 früh", 25, 300, 74)
-    assert choose([long_walk, bus, too_early], target) is bus
-    assert choose([long_walk, too_early], target) is long_walk  # nichts Bequemeres im Zeitfenster
+    long_walk = opt("S7 + 1 km zu Fuß", 29, 6)
+    bus = opt("S7, Bus 4", 33, 2)
+    too_early = opt("S7 früh", 25, 74)
+    assert choose([long_walk, bus, too_early], target) is long_walk
     assert choose([too_early], target) is too_early
     assert choose([], target) is None
