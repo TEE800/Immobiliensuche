@@ -152,3 +152,14 @@ def test_choose_fastest_arriving_close_to_target():
     assert choose([long_walk, bus, too_early], target) is long_walk
     assert choose([too_early], target) is too_early
     assert choose([], target) is None
+
+
+def test_next_day_skips_holidays():
+    from datetime import date
+    from mietsuche.commute import is_holiday
+
+    wednesday = datetime(2026, 10, 28, 12, 0, tzinfo=BERLIN)
+    # Sa 31.10.2026 ist Reformationstag (Feiertag in Hamburg und Schleswig-Holstein).
+    assert next_day_at("08:30", (5,), wednesday).astimezone(BERLIN).date() == date(2026, 11, 7)
+    assert is_holiday(date(2026, 4, 3)) and is_holiday(date(2026, 5, 14)) and is_holiday(date(2026, 5, 25))
+    assert not is_holiday(date(2026, 10, 30))

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 import math
-from datetime import datetime, time, timedelta
+from datetime import date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
 import httpx
@@ -27,12 +27,34 @@ MODES = {"BUS": "Bus", "SUBWAY": "U", "SUBURBAN": "S", "TRAM": "Tram", "FERRY": 
          "RAIL": "Zug", "REGIONAL_RAIL": "Zug", "REGIONAL_FAST_RAIL": "Zug", "METRO": "U"}
 
 
+def _easter(year: int) -> date:
+    """Ostersonntag (Meeus/Jones/Butcher)."""
+    a, b, c = year % 19, year // 100, year % 100
+    d, e = b // 4, b % 4
+    f = (b + 8) // 25
+    g = (b - f + 1) // 3
+    h = (19 * a + b - d - g + 15) % 30
+    i, k = c // 4, c % 4
+    l = (32 + 2 * e + 2 * i - h - k) % 7
+    m = (a + 11 * h + 22 * l) // 451
+    month, day = divmod(h + l - 7 * m + 114, 31)
+    return date(year, month, day + 1)
+
+
+def is_holiday(day: date) -> bool:
+    """Gesetzlicher Feiertag in Hamburg und Schleswig-Holstein (dann fährt alles wie sonntags)."""
+    if (day.month, day.day) in {(1, 1), (5, 1), (10, 3), (10, 31), (12, 25), (12, 26)}:
+        return True
+    offset = (day - _easter(day.year)).days
+    return offset in (-2, 1, 39, 50)  # Karfreitag, Ostermontag, Himmelfahrt, Pfingstmontag
+
+
 def next_day_at(clock: str, days: tuple[int, ...] = WORKDAYS, now: datetime | None = None) -> datetime:
-    """Nächster passender Wochentag (ab morgen) zur Uhrzeit ``"08:00"``, in UTC."""
+    """Nächster passender Wochentag (ab morgen, ohne Feiertage) zur Uhrzeit ``"08:00"``, in UTC."""
     now = now or datetime.now(BERLIN)
     hour, minute = (int(x) for x in clock.split(":"))
     day = now.astimezone(BERLIN).date() + timedelta(days=1)
-    while day.weekday() not in days:
+    while day.weekday() not in days or is_holiday(day):
         day += timedelta(days=1)
     return datetime.combine(day, time(hour, minute), BERLIN).astimezone(ZoneInfo("UTC"))
 
@@ -97,6 +119,8 @@ class Transitous:
             "toPlace": f"{goal[0]},{goal[1]}",
             "time": arrive.strftime("%Y-%m-%dT%H:%M:%SZ"),
             "arriveBy": "true",
+            # Mehr Vorschläge, damit einer kurz vor der Zielzeit ankommt.
+            "numItineraries": 8,
         })
         r.raise_for_status()
         return r.json()
