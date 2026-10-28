@@ -128,3 +128,24 @@ def test_images_and_extra_fields(tmp_path):
     assert client.get("/bilder/test%3A1/2").content == b"zwei"
     assert client.get("/bilder/test%3A1/3").status_code == 404
     assert client.get("/bilder/..%2F..%2Fconfig.yaml/1").status_code == 404
+
+
+def test_push_ttl_cleanup_and_test_button(tmp_path, monkeypatch):
+    from pywebpush import WebPushException
+
+    config, storage, client = setup(tmp_path)
+    login(client)
+    assert client.post("/api/push/test").status_code == 502  # noch kein Gerät
+    for name in ("gut", "kaputt"):
+        storage.add_push_subscription({"endpoint": f"https://{name}.example/x", "keys": {}})
+    calls = []
+
+    def fake(sub, data, **kw):
+        calls.append(kw)
+        if "kaputt" in sub["endpoint"]:
+            raise WebPushException("400", response=type("R", (), {"status_code": 400})())
+
+    monkeypatch.setattr("mietsuche.webpush.webpush", fake)
+    assert client.post("/api/push/test").json() == {"ok": True}
+    assert calls[0]["ttl"] == 24 * 3600 and calls[0]["headers"]["Urgency"] == "high"
+    assert [s["endpoint"] for s in storage.push_subscriptions()] == ["https://gut.example/x"]
