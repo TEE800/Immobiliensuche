@@ -125,6 +125,21 @@ def test_render_letter_fills_and_blanks_unknown():
     assert text.endswith("Ende")
 
 
+@pytest.mark.parametrize("title, expected", [
+    ("Schöne Wohnung in Altona", "Ihre schöne Wohnung in Altona"),
+    ("Moderne, ruhige 2-Zi-Whg. mit Terrasse", "Ihre moderne, ruhige 2-Zi-Whg. mit Terrasse"),
+    ("ÖFFENTLICHE BESICHTIGUNG 30.10. Altbauvilla", "Ihre Altbauvilla"),
+    ("3-Zimmer-Wohntraum in Wohldorf-Ohlstedt", "Ihren 3-Zimmer-Wohntraum in Wohldorf-Ohlstedt"),
+    ("Schöner Altbau in Eimsbüttel", "Ihren schönen Altbau in Eimsbüttel"),
+    ("Helles Reihenhaus mit Garten – provisionsfrei", "Ihr helles Reihenhaus mit Garten"),
+    ("Ihr neues Zuhause: günstige 2-Zimmer-Wohnung", "Ihre günstige 2-Zimmer-Wohnung"),
+    ("Helle 3 Zimmer Wohnung", "Ihre helle 3 Zimmer Wohnung"),
+    ("Nachmieter gesucht für 2-Zimmer-Wohnung", "Ihre Anzeige „Nachmieter gesucht für 2-Zimmer-Wohnung“"),
+])
+def test_your_listing(title, expected):
+    assert render_letter("für {ihre_anzeige}.", make(title=title)) == f"für {expected}."
+
+
 def test_render_letter_object_and_number():
     tpl = "wir interessieren uns sehr für {ihr_objekt} (Nr. {objektnr}) in {ort}."
     house = make(property_type="haus", external_id="152388", city="Halstenbek")

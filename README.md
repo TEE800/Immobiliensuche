@@ -194,7 +194,7 @@ und keine Fotos. Das sind Warnzeichen, kein Beweis.
 
 Platzhalter in `anschreiben.txt`: `{anrede}`, `{name}`, `{titel}`,
 `{adresse}`, `{ort}`, `{zimmer}`, `{flaeche}`, `{portal}`, `{objektnr}`,
-`{ihr_objekt}` („Ihre Wohnung“ bzw. „Ihr Haus“). Die Anrede wird
+`{ihr_objekt}` („Ihre Wohnung“ bzw. „Ihr Haus“), `{ihre_anzeige}` (Titel der Anzeige mit „Ihre“ davor, z. B. „Ihre schöne Wohnung in Altona“). Die Anrede wird
 aus dem Kontaktnamen gebildet („Sehr geehrte Frau Müller,“), sonst
 „Sehr geehrte Damen und Herren,“.
 
