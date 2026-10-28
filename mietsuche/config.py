@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -22,10 +23,45 @@ class Criteria:
     balcony_without_size_ok: bool = True
 
 
+DAY_NAMES = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
+
+
+@dataclass
+class Arrival:
+    """Ankunft am Arbeitsort an bestimmten Wochentagen (0 = Montag)."""
+    days: tuple[int, ...]
+    clock: str
+
+    @property
+    def label(self) -> str:
+        days = list(self.days)
+        if len(days) > 2 and days == list(range(days[0], days[-1] + 1)):
+            return f"{DAY_NAMES[days[0]]}–{DAY_NAMES[days[-1]]}"
+        return ", ".join(DAY_NAMES[d] for d in days)
+
+
+WORKDAYS = (0, 1, 2, 3, 4)
+
+
+def parse_days(text: str) -> tuple[int, ...]:
+    """``"Di-Fr"``, ``"Sa"`` oder ``"Mo, Mi"`` in Wochentage umwandeln."""
+    index = {n.lower(): i for i, n in enumerate(DAY_NAMES)}
+    days: set[int] = set()
+    for part in re.split(r"[,\s]+", text.strip()):
+        if not part:
+            continue
+        ends = re.split(r"[-–]", part)
+        first, last = index[ends[0][:2].lower()], index[ends[-1][:2].lower()]
+        days.update(range(first, last + 1))
+    return tuple(sorted(days))
+
+
 @dataclass
 class Workplace:
     name: str
     address: str
+    # Leer: gemeinsame Ankunftszeit (pendeln.ankunft) von Montag bis Freitag.
+    arrivals: list[Arrival] = field(default_factory=list)
 
 
 @dataclass
@@ -87,8 +123,16 @@ def load_config(path: str | Path = "config.yaml") -> Config:
         ngrok_domain=str(web.get("ngrok_domain", "") or ""),
         push_contact=web.get("kontakt_email", ""),
         workplaces=[
-            Workplace(str(z.get("name", "")), str(z["adresse"]))
+            Workplace(str(z.get("name", "")), str(z["adresse"]), _arrivals(z.get("ankunft")))
             for z in pendeln.get("ziele", []) or [] if z.get("adresse")
         ],
         arrival_time=str(pendeln.get("ankunft", "08:00")),
     )
+
+
+def _arrivals(value) -> list[Arrival]:
+    if not value:
+        return []
+    if isinstance(value, str):
+        return [Arrival(WORKDAYS, value)]
+    return [Arrival(parse_days(str(a.get("tage", "Mo-Fr"))), str(a["uhrzeit"])) for a in value]

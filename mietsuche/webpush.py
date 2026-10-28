@@ -49,7 +49,7 @@ def push_payload(row) -> dict:
         body = f"{row['address']}\n{body}" if body else row["address"]
     commute = json.loads(row["data"]).get("commute", [])
     if commute:
-        body += "\n🚆 " + " · ".join(f"{c['name']} {c['minuten']} Min." for c in commute)
+        body += "\n🚆 " + commute_text(commute)
     return {
         "title": row["title"][:120],
         "body": body,
@@ -84,3 +84,16 @@ class WebPush:
                     log.warning("Push an %s fehlgeschlagen: %s", sub["endpoint"][:60], e)
         if not delivered:
             raise RuntimeError("Push an kein Gerät zugestellt.")
+
+
+def commute_text(commute: list[dict]) -> str:
+    """„Kevin 34 Min. · Fritzi Di–Fr 38 Min., Sa 45 Min.“"""
+    by_name: dict[str, list[dict]] = {}
+    for c in commute:
+        by_name.setdefault(c["name"], []).append(c)
+    parts = []
+    for name, items in by_name.items():
+        times = [(f"{c['tage']} " if c.get("tage") and c["tage"] != "Mo–Fr" else "") + f"{c['minuten']} Min."
+                 for c in items]
+        parts.append(f"{name} " + ", ".join(times))
+    return " · ".join(parts)
