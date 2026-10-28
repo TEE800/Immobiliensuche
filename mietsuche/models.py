@@ -39,10 +39,14 @@ class Listing:
     contact_name: str | None = None
     contact_company: str | None = None
     available_from: str | None = None
+    year_built: int | None = None
     # Fahrzeiten zu den Arbeitsorten: [{"name", "minuten", "umstiege", "linien", "ungefaehr"}]
     commute: list = field(default_factory=list)
     # Für welche Arbeitsorte ``commute`` berechnet wurde; ändern sie sich, wird neu gerechnet.
     commute_for: str = ""
+    # Vergleich mit dem Hamburger Mietenspiegel (siehe mietenspiegel.compare)
+    rent_index: dict = field(default_factory=dict)
+    rent_index_for: str = ""
     raw: dict = field(default_factory=dict, repr=False)
 
     @property

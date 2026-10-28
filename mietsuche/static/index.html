@@ -126,6 +126,44 @@ async function api(path, options = {}) {
   return res.json();
 }
 
+const euroQm = (n) => n.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €/m²";
+
+function rentShort(l) {
+  const r = l.rent_index;
+  if (!r || !r.qm) return "";
+  if (r.abweichung !== undefined) {
+    const sign = r.abweichung > 0 ? "+" : "";
+    return `📊 Mietenspiegel: ${sign}${r.abweichung} % zum Mittel`;
+  }
+  return r.bewertung === "im Rahmen" ? "📊 Mietenspiegel: im üblichen Rahmen"
+    : `📊 Mietenspiegel: ${r.bewertung} dem üblichen Rahmen`;
+}
+
+function rentPanel(l) {
+  const r = l.rent_index;
+  if (!r || (!r.qm && !r.hinweis)) return "";
+  let body;
+  if (!r.qm) {
+    body = `<p>${esc(r.hinweis)}</p>`;
+  } else {
+    const known = [r.lage ? `${r.lage === "gut" ? "gute" : "normale"} Wohnlage` : "Wohnlage unbekannt",
+                   r.baujahr ? `Baujahr ${r.baujahr}` : "Baujahr unbekannt"].join(", ");
+    const mittel = r.mittel_von === r.mittel_bis ? euroQm(r.mittel_von)
+      : `${euroQm(r.mittel_von)} bis ${euroQm(r.mittel_bis)}`;
+    const diff = r.abweichung !== undefined
+      ? `<li><b>Abweichung:</b> ${r.abweichung > 0 ? "+" : ""}${r.abweichung} % zum Mittelwert</li>` : "";
+    body = `<ul class="checks">
+      <li><b>Diese Wohnung:</b> ${euroQm(r.qm)} kalt</li>
+      <li><b>Mietenspiegel-Mittel:</b> ${mittel}</li>
+      <li><b>Üblicher Rahmen:</b> ${euroQm(r.spanne_von)} bis ${euroQm(r.spanne_bis)}</li>${diff}
+      <li><b>Ergebnis:</b> ${r.bewertung === "im Rahmen" ? "im üblichen Rahmen" : esc(r.bewertung) + " dem üblichen Rahmen"}</li>
+    </ul>
+    <div class="meta">Gerechnet mit: ${esc(known)}. Hamburger Mietenspiegel 2025, Kaltmiete ohne Nebenkosten.
+      Nur eine Orientierung, keine rechtliche Prüfung. Bei deutlich höherer Miete kann der Mieterverein helfen.</div>`;
+  }
+  return `<div class="panel"><h3>Mietenspiegel</h3>${body}</div>`;
+}
+
 function commuteShort(l) {
   if (!l.commute || !l.commute.length) return "";
   const byName = new Map();
@@ -217,6 +255,7 @@ function renderList() {
         <div class="meta">${esc(l.address || "")}</div>
         <div class="facts">${esc(facts(l))}</div>
         ${l.commute && l.commute.length ? `<div class="meta">${esc(commuteShort(l))}</div>` : ""}
+        ${rentShort(l) ? `<div class="meta">${esc(rentShort(l))}</div>` : ""}
         <div class="chips"><span class="chip s-${l.status}">${LABELS[l.status]}</span>${chips}
           <span class="chip">${ago(l.first_seen)}</span></div>
       </div></a>${del}</div>`;
@@ -267,6 +306,7 @@ async function renderDetail(key) {
     </div>
 
     ${commutePanel(l)}
+    ${rentPanel(l)}
     <div class="panel"><h3>Prüfung</h3><ul class="checks">${checks}</ul></div>
     ${l.description ? `<div class="panel"><details><summary>Anzeigentext</summary>
       <p class="desc">${esc(l.description)}</p></details></div>` : ""}

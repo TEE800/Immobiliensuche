@@ -175,6 +175,7 @@ OM_DETAIL = """
 <p>Helle Wohnung mit Blick ins Grüne. Haustiere nach Absprache.</p>
 <dl>
 <dt>Objektart</dt><dd>Wohnung</dd>
+<dt>Baujahr</dt><dd>1972</dd>
 <dt>Übernahme ab</dt><dd>1. Januar 2027</dd>
 <dt>Kaltmiete</dt><dd>1.100 €</dd><dd>(zzgl. NK)</dd>
 <dt>Heizkosten</dt><dd>100 €</dd>
@@ -205,6 +206,7 @@ def test_ohne_makler_details():
     assert full.warm_rent_estimate == (1390, False)
     assert full.balcony is True and full.garden_maybe_shared
     assert full.available_from == "1. Januar 2027"
+    assert full.year_built == 1972
     assert "Kindergarten" not in full.description and "Lage-Check" not in full.description
     checks = {c.name: c.result for c in evaluate(full, CRITERIA).checks}
     assert checks["haustiere"] == JA

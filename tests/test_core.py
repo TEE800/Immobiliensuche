@@ -279,3 +279,21 @@ def test_commute_backfilled_for_older_matches(tmp_path):
         main_module.commute_times = original
     assert calls == ["1", "1"]
     assert json.loads(storage.get("test:1")["data"])["commute"][0]["name"] == "Kevin"
+
+
+def test_rent_index_for_matches_and_backfill(tmp_path):
+    from mietsuche.mietenspiegel import VERSION
+
+    (tmp_path / "config.yaml").write_text("datenbank: db.sqlite\n")
+    config = load_config(tmp_path / "config.yaml")
+    storage = Storage(config.database)
+    run_once(config, storage, [FakeSource([make(), make(external_id="2", rooms=1)])], [FakeNotifier()])
+    data = json.loads(storage.get("test:1")["data"])
+    assert data["rent_index_for"] == VERSION and data["rent_index"]
+    assert not json.loads(storage.get("test:2")["data"]).get("rent_index")  # kein Treffer
+
+    # Ältere Treffer ohne Vergleich bekommen ihn beim nächsten Lauf.
+    data["rent_index"], data["rent_index_for"] = {}, ""
+    storage.update_data("test:1", data)
+    run_once(config, storage, [FakeSource([])], [FakeNotifier()])
+    assert json.loads(storage.get("test:1")["data"])["rent_index_for"] == VERSION

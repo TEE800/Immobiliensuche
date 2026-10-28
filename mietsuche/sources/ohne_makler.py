@@ -15,7 +15,7 @@ from bs4 import BeautifulSoup
 from ..config import Criteria
 from ..models import Listing
 from . import Source, register
-from .common import Fetcher, clean, number, split_place
+from .common import Fetcher, clean, number, split_place, year_from_text
 
 log = logging.getLogger(__name__)
 
@@ -31,6 +31,7 @@ MAX_PAGES = 4
 _LABELS = {
     "Kaltmiete", "Warmmiete", "Heizkosten", "Nebenkosten ohne Heizkosten",
     "Summe Nebenkosten/Heizkosten", "Objektart", "Objekttyp", "Übernahme ab", "Ausstattung",
+    "Baujahr",
 }
 _END = ("Lage-Check", "Energie", "Ähnliche Immobilien", "Makleranfragen unerwünscht!")
 
@@ -136,7 +137,13 @@ def parse_details(html: str, listing: Listing) -> Listing:
         balcony=True if {"balkon", "terrasse", "loggia", "dachterrasse"} & set(features) else None,
         description="\n".join(text),
         available_from=facts.get("Übernahme ab"),
+        year_built=_year(facts.get("Baujahr")) or year_from_text("\n".join(text)),
     )
+
+
+def _year(text: str | None) -> int | None:
+    m = re.search(r"\b(1[89]\d\d|20\d\d)\b", text or "")
+    return int(m.group(1)) if m else None
 
 
 @register

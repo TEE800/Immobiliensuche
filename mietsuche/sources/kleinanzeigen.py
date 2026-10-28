@@ -16,7 +16,7 @@ from bs4 import BeautifulSoup
 from ..config import Criteria
 from ..models import Listing
 from . import Source, register
-from .common import Fetcher, clean, number, split_place
+from .common import Fetcher, clean, number, split_place, year_from_text
 
 log = logging.getLogger(__name__)
 
@@ -169,6 +169,7 @@ def parse_details(html: str, listing: Listing) -> Listing:
         description=description,
         contact_name=clean(contact_el.get_text()) if contact_el else None,
         available_from=f"{month}/{year}" if month and year else None,
+        year_built=year_from_text(description),
         raw=attrs,
     )
 
