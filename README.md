@@ -145,7 +145,9 @@ Unter `pendeln.ziele` in `config.yaml` stehen Arbeitsadressen. Für jeden
 Treffer rechnet die Mietsuche dann über [Transitous](https://transitous.org)
 (kostenlos, ohne Konto) die schnellste Verbindung mit Bus und Bahn zur
 Ankunftszeit `pendeln.ankunft` am nächsten Werktag aus und zeigt sie in der
-App und in der Push-Nachricht. Gesendet werden die Adresse der Anzeige und
+App und in der Push-Nachricht. Ein Ziel kann unter `ankunft` eigene Tage und
+Uhrzeiten haben (siehe `config.example.yaml`), etwa Di–Fr 9:30 und Sa 8:30;
+dann gibt es für jeden Eintrag eine eigene Fahrzeit. Gesendet werden die Adresse der Anzeige und
 die Koordinaten der Arbeitsorte, keine Namen. Nennt eine Anzeige keine
 Straße, wird ab dem Stadtteil gerechnet und das Ergebnis als „ungefähr“
 markiert.

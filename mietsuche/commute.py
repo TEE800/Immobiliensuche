@@ -12,7 +12,7 @@ from zoneinfo import ZoneInfo
 
 import httpx
 
-from .config import Workplace
+from .config import WORKDAYS, Arrival, Workplace
 from .models import Listing
 from .sources.common import USER_AGENT
 
@@ -24,12 +24,12 @@ MODES = {"BUS": "Bus", "SUBWAY": "U", "SUBURBAN": "S", "TRAM": "Tram", "FERRY": 
          "RAIL": "Zug", "REGIONAL_RAIL": "Zug", "REGIONAL_FAST_RAIL": "Zug", "METRO": "U"}
 
 
-def next_workday_at(clock: str, now: datetime | None = None) -> datetime:
-    """Nächster Werktag (Mo–Fr, ab morgen) zur Uhrzeit ``"08:00"``, in UTC."""
+def next_day_at(clock: str, days: tuple[int, ...] = WORKDAYS, now: datetime | None = None) -> datetime:
+    """Nächster passender Wochentag (ab morgen) zur Uhrzeit ``"08:00"``, in UTC."""
     now = now or datetime.now(BERLIN)
     hour, minute = (int(x) for x in clock.split(":"))
     day = now.astimezone(BERLIN).date() + timedelta(days=1)
-    while day.weekday() >= 5:
+    while day.weekday() not in days:
         day += timedelta(days=1)
     return datetime.combine(day, time(hour, minute), BERLIN).astimezone(ZoneInfo("UTC"))
 
@@ -100,14 +100,15 @@ def commute_times(listing: Listing, workplaces: list[Workplace], arrival: str,
     start = service.geocode(text)
     if start is None:
         return []
-    arrive = next_workday_at(arrival)
     results = []
     for work in workplaces:
         goal = service.geocode(work.address)
         if goal is None:
             log.warning("Arbeitsort nicht gefunden: %s", work.name)
             continue
-        best = service.plan(start, goal, arrive)
-        if best:
-            results.append({"name": work.name, **best, "ungefaehr": approx})
+        for when in work.arrivals or [Arrival(WORKDAYS, arrival)]:
+            best = service.plan(start, goal, next_day_at(when.clock, when.days))
+            if best:
+                results.append({"name": work.name, "tage": when.label, "ankunft": when.clock,
+                                **best, "ungefaehr": approx})
     return results

@@ -23,7 +23,10 @@ log = logging.getLogger("mietsuche")
 
 
 def _commute_key(config: Config) -> str:
-    places = ";".join(f"{w.name}={w.address}" for w in config.workplaces)
+    places = ";".join(
+        f"{w.name}={w.address}" + "".join(f"@{a.label} {a.clock}" for a in w.arrivals)
+        for w in config.workplaces
+    )
     return f"{config.arrival_time}|{places}"
 
 

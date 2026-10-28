@@ -51,11 +51,17 @@ app:
 pendeln:
   # Bei jedem Treffer die Fahrzeit mit Bus und Bahn zu diesen Adressen
   # anzeigen (berechnet über transitous.org, kostenlos, ohne Konto).
-  # Ankunft am nächsten Werktag zu dieser Uhrzeit.
+  # Ankunft am nächsten Werktag (Mo–Fr) zu dieser Uhrzeit.
   ankunft: "08:00"
   ziele: []
   #  - name: Kevin
   #    adresse: "Musterstraße 1, 20095 Hamburg"
+  #  - name: Fritzi
+  #    adresse: "Beispielweg 2, 22767 Hamburg"
+  #    # Eigene Zeiten statt der gemeinsamen, je Eintrag eine eigene Fahrzeit.
+  #    ankunft:
+  #      - {tage: "Di-Fr", uhrzeit: "09:30"}
+  #      - {tage: "Sa", uhrzeit: "08:30"}
 
 anschreiben_datei: anschreiben.txt
 datenbank: data/mietsuche.sqlite

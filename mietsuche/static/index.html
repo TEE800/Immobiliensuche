@@ -126,14 +126,20 @@ async function api(path, options = {}) {
 
 function commuteShort(l) {
   if (!l.commute || !l.commute.length) return "";
-  return "🚆 " + l.commute.map((c) => `${c.name} ${c.minuten} Min.`).join(" · ");
+  const byName = new Map();
+  for (const c of l.commute) {
+    if (!byName.has(c.name)) byName.set(c.name, []);
+    byName.get(c.name).push((c.tage && c.tage !== "Mo–Fr" ? c.tage + " " : "") + `${c.minuten} Min.`);
+  }
+  return "🚆 " + [...byName].map(([name, times]) => `${name} ${times.join(", ")}`).join(" · ");
 }
 
 function commutePanel(l) {
   if (!l.commute || !l.commute.length) return "";
   const rows = l.commute.map((c) => {
     const changes = c.umstiege === 0 ? "ohne Umsteigen" : c.umstiege === 1 ? "1× umsteigen" : `${c.umstiege}× umsteigen`;
-    return `<li><b>${esc(c.name)}:</b> ${c.minuten} Min., ${changes}${c.linien ? " (" + esc(c.linien) + ")" : ""}</li>`;
+    const when = c.tage ? ` (${esc(c.tage)}, Ankunft ${esc(c.ankunft.replace(/^0/, ""))} Uhr)` : "";
+    return `<li><b>${esc(c.name)}${when}:</b> ${c.minuten} Min., ${changes}${c.linien ? " (" + esc(c.linien) + ")" : ""}</li>`;
   }).join("");
   const approx = l.commute.some((c) => c.ungefaehr)
     ? '<div class="meta">Ungefähr: Die Anzeige nennt keine Straße, gerechnet wurde ab dem Stadtteil.</div>' : "";
