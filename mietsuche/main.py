@@ -29,8 +29,8 @@ def _commute_key(config: Config) -> str:
         f"{w.name}={w.address}" + "".join(f"@{a.label} {a.clock}" for a in w.arrivals)
         for w in config.workplaces
     )
-    # v5: schnellste Verbindung, die kurz vor der Zielzeit ankommt; ältere Treffer werden neu gerechnet.
-    return f"v5|{config.arrival_time}|{places}"
+    # v6: schnellste Verbindung kurz vor der Zielzeit, ohne Feiertage; ältere Treffer werden neu gerechnet.
+    return f"v6|{config.arrival_time}|{places}"
 
 
 def _update_commutes(config: Config, storage: Storage, transit) -> None:
