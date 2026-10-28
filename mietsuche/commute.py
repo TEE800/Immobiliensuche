@@ -21,8 +21,7 @@ log = logging.getLogger(__name__)
 
 API = "https://api.transitous.org/api"
 BERLIN = ZoneInfo("Europe/Berlin")
-# Längster einzelner Fußweg, den wir noch bequem finden, und wie früh man da sein darf.
-MAX_WALK_M = 600
+# So früh darf man höchstens vor der gewünschten Zeit ankommen.
 EARLY = timedelta(minutes=20)
 MODES = {"BUS": "Bus", "SUBWAY": "U", "SUBURBAN": "S", "TRAM": "Tram", "FERRY": "Fähre",
          "RAIL": "Zug", "REGIONAL_RAIL": "Zug", "REGIONAL_FAST_RAIL": "Zug", "METRO": "U"}
@@ -92,13 +91,12 @@ class Transitous:
             self._places[text] = (hits[0]["lat"], hits[0]["lon"]) if hits else None
         return self._places[text]
 
-    def _plan(self, start, goal, arrive: datetime, **limits) -> dict:
+    def _plan(self, start, goal, arrive: datetime) -> dict:
         r = self.client.get(f"{API}/v5/plan", params={
             "fromPlace": f"{start[0]},{start[1]}",
             "toPlace": f"{goal[0]},{goal[1]}",
             "time": arrive.strftime("%Y-%m-%dT%H:%M:%SZ"),
             "arriveBy": "true",
-            **limits,
         })
         r.raise_for_status()
         return r.json()
@@ -109,9 +107,7 @@ class Transitous:
             legs = it.get("legs", [])
             return {"minuten": round(it["duration"] / 60), "umstiege": changes, "linien": lines,
                     "schritte": _steps(legs, goal_name),
-                    "_an": _when(it["endTime"]) if it.get("endTime") else None,
-                    "_fuss": max((leg.get("distance", 0) for leg in legs if leg.get("mode") == "WALK"),
-                                 default=0)}
+                    "_an": _when(it["endTime"]) if it.get("endTime") else None}
 
         options = [option(it, _lines(it), it.get("transfers", 0)) for it in data.get("itineraries", [])]
         # Zu Fuß ist manchmal schneller als jede Bahn.
@@ -122,10 +118,6 @@ class Transitous:
     def plan(self, start: tuple[float, float], goal: tuple[float, float], arrive: datetime,
              goal_name: str = "Arbeit") -> dict | None:
         options = self._options(self._plan(start, goal, arrive), goal_name)
-        if options and not any(o["_fuss"] <= MAX_WALK_M for o in options):
-            # Der Fahrplandienst nimmt lange Fußwege in Kauf; dann nach Bus-Anschlüssen fragen.
-            options += self._options(self._plan(start, goal, arrive, maxPreTransitTime=600,
-                                                maxPostTransitTime=480), goal_name)
         best = choose(options, arrive)
         return {k: v for k, v in best.items() if not k.startswith("_")} if best else None
 
@@ -135,10 +127,10 @@ def _when(stamp: str) -> datetime:
 
 
 def choose(options: list[dict], arrive: datetime) -> dict | None:
-    """Bequemste Verbindung, die kurz vor der Zielzeit ankommt.
+    """Schnellste Verbindung, die kurz vor der Zielzeit ankommt.
 
-    Erst Verbindungen, die höchstens 20 Minuten zu früh da sind (sonst die
-    spätesten), dann solche ohne langen Fußweg, dann die schnellste.
+    Nur Verbindungen, die höchstens 20 Minuten zu früh da sind (sonst die
+    spätesten); Fußwege zählen nicht extra (Kevins Wunsch).
     """
     if not options:
         return None
@@ -148,7 +140,6 @@ def choose(options: list[dict], arrive: datetime) -> dict | None:
         latest = max(o["_an"] for o in timed)
         window = [o for o in timed if o["_an"] >= latest - EARLY]
     pool = window or options
-    pool = [o for o in pool if o["_fuss"] <= MAX_WALK_M] or pool
     return min(pool, key=lambda o: (o["minuten"], o["umstiege"], -(o["_an"] or arrive).timestamp()))
 
 
