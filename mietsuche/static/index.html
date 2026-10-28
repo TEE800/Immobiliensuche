@@ -117,7 +117,8 @@ const CHECK_LABELS = {
 const ICON = { ja: "✅", unklar: "❓", nein: "❌" };
 const CLOSED = ["abgesagt", "uninteressant"];
 // Gelöschte Anzeigen zählen nicht mehr als aktiv, bleiben aber unter ihrem Status sichtbar.
-const isActive = (l) => !CLOSED.includes(l.status) && !l.offline;
+// „Aktiv“ sind nur Treffer, um die sich noch niemand gekümmert hat; angefragte usw. haben eigene Reiter.
+const isActive = (l) => l.status === "neu" && !l.offline;
 
 let state = { listings: [], statuses: [], filter: "aktiv" };
 
@@ -335,7 +336,7 @@ function renderTabs() {
   const active = state.listings.filter(isActive).length;
   const offline = state.listings.filter((l) => l.offline && !CLOSED.includes(l.status)).length;
   const tabs = [["aktiv", `Aktiv (${active})`]].concat(
-    state.statuses.filter((s) => counts[s]).map((s) => [s, `${LABELS[s]} (${counts[s]})`]),
+    state.statuses.filter((s) => counts[s] && s !== "neu").map((s) => [s, `${LABELS[s]} (${counts[s]})`]),
     offline ? [["offline", `Nicht mehr online (${offline})`]] : []);
   $("#tabs").innerHTML = tabs.map(([k, label]) =>
     `<button data-f="${k}" class="${state.filter === k ? "on" : ""}">${esc(label)}</button>`).join("");
