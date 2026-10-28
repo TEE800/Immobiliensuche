@@ -62,6 +62,9 @@
   .gallery a { flex: none; width: 100%; scroll-snap-align: center; }
   .gallery img { width: 100%; height: 300px; object-fit: cover; border-radius: 14px; background: var(--soft);
     display: block; }
+  .gallery .nav { position: absolute; top: 50%; transform: translateY(-50%); width: 44px; height: 44px;
+    padding: 0; border: 0; border-radius: 999px; background: #000a; color: #fff; font-size: 26px; line-height: 1; }
+  .gallery .prev { left: 8px; } .gallery .next { right: 8px; }
   .gallery .count { position: absolute; right: 10px; bottom: 10px; background: #000a; color: #fff;
     font-size: 12px; padding: 2px 8px; border-radius: 999px; }
   .fake { border-color: var(--warn); }
@@ -204,16 +207,23 @@ function gallery(l) {
   if (!l.bilder || l.bilder.length < 2) return img(l.image_url, "hero");
   return `<div class="gallery"><div class="strip" id="strip">${l.bilder.map((u) =>
     `<a href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" alt="" loading="lazy"></a>`).join("")}</div>
+    <button class="nav prev" id="prev" aria-label="Voriges Bild">‹</button>
+    <button class="nav next" id="next" aria-label="Nächstes Bild">›</button>
     <span class="count" id="count">1 / ${l.bilder.length}</span></div>`;
 }
 
 function watchGallery() {
   const strip = $("#strip");
   if (!strip) return;
-  strip.onscroll = () => {
-    const n = Math.round(strip.scrollLeft / strip.clientWidth) + 1;
-    $("#count").textContent = `${n} / ${strip.children.length}`;
+  const total = strip.children.length;
+  const current = () => Math.round(strip.scrollLeft / strip.children[0].offsetWidth);
+  const show = (i) => {
+    i = (i + total) % total;  // nach dem letzten Bild wieder zum ersten
+    strip.scrollTo({ left: strip.children[i].offsetLeft - strip.offsetLeft, behavior: "smooth" });
   };
+  strip.onscroll = () => { $("#count").textContent = `${Math.min(current() + 1, total)} / ${total}`; };
+  $("#prev").onclick = () => show(current() - 1);
+  $("#next").onclick = () => show(current() + 1);
 }
 
 function fakePanel(l) {
