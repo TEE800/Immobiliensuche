@@ -55,6 +55,17 @@
   .ok { color: var(--ok); } .unklar { color: var(--warn); } .nein { color: var(--bad); }
   .empty { text-align: center; color: var(--muted); padding: 48px 16px; }
   .hero { width: 100%; max-height: 300px; object-fit: cover; border-radius: 14px; background: var(--soft); }
+  .gallery { position: relative; }
+  .gallery .strip { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 6px;
+    border-radius: 14px; scrollbar-width: none; }
+  .gallery .strip::-webkit-scrollbar { display: none; }
+  .gallery a { flex: none; width: 100%; scroll-snap-align: center; }
+  .gallery img { width: 100%; height: 300px; object-fit: cover; border-radius: 14px; background: var(--soft);
+    display: block; }
+  .gallery .count { position: absolute; right: 10px; bottom: 10px; background: #000a; color: #fff;
+    font-size: 12px; padding: 2px 8px; border-radius: 999px; }
+  .fake { border-color: var(--warn); }
+  .fake ul { margin: 4px 0 8px; padding-left: 18px; }
   .detail h2 { margin: 12px 0 4px; font-size: 20px; }
   .panel { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px;
     margin-top: 12px; }
@@ -186,6 +197,30 @@ function places(l) {
   for (const c of l.commute || []) if (c.nach && !seen.has(c.name)) seen.set(c.name, c);
   const home = (l.commute || []).find((c) => c.von);
   return home ? { home: home.von, work: [...seen.values()], approx: home.ungefaehr } : null;
+}
+
+function gallery(l) {
+  if (!l.bilder || l.bilder.length < 2) return img(l.image_url, "hero");
+  return `<div class="gallery"><div class="strip" id="strip">${l.bilder.map((u) =>
+    `<a href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" alt="" loading="lazy"></a>`).join("")}</div>
+    <span class="count" id="count">1 / ${l.bilder.length}</span></div>`;
+}
+
+function watchGallery() {
+  const strip = $("#strip");
+  if (!strip) return;
+  strip.onscroll = () => {
+    const n = Math.round(strip.scrollLeft / strip.clientWidth) + 1;
+    $("#count").textContent = `${n} / ${strip.children.length}`;
+  };
+}
+
+function fakePanel(l) {
+  if (!l.auffaellig || !l.auffaellig.length) return "";
+  return `<div class="panel fake"><h3>⚠️ Auffällig, bitte vorsichtig sein</h3>
+    <ul>${l.auffaellig.map((w) => `<li>${esc(w)}</li>`).join("")}</ul>
+    <div class="meta">Das sind Warnzeichen, kein Beweis. Nie Geld überweisen oder den Ausweis schicken,
+      bevor ihr die Wohnung von innen gesehen und den Vermieter getroffen habt.</div></div>`;
 }
 
 function mapPanel(l) {
@@ -321,7 +356,8 @@ function renderList() {
     const c = l.checks;
     const chips = ["haustiere", "aussenbereich"].filter((k) => c[k]).map((k) =>
       `<span class="chip">${ICON[c[k].ergebnis]} ${esc(CHECK_LABELS[k])}</span>`).join("")
-      + (l.offline ? '<span class="chip">⛔ Nicht mehr online</span>' : "");
+      + (l.offline ? '<span class="chip">⛔ Nicht mehr online</span>' : "")
+      + (l.auffaellig && l.auffaellig.length ? '<span class="chip unklar">⚠️ Auffällig</span>' : "");
     const del = l.status === "uninteressant"
       ? `<button class="del" data-restore="${esc(l.key)}" title="Wiederherstellen">↩</button>`
       : `<button class="del" data-del="${esc(l.key)}" title="Löschen">🗑</button>`;
@@ -360,12 +396,13 @@ async function renderDetail(key) {
       <b>${esc(CHECK_LABELS[k] || k)}:</b> ${esc(c.hinweis)}</li>`).join("");
   $("#app").innerHTML = `<div class="detail">
     <button class="back" onclick="location.hash='#/'">← Alle Treffer</button>
-    ${img(l.image_url, "hero")}
+    ${gallery(l)}
     <h2>${esc(l.title)}</h2>
     <div class="meta">${esc(l.address || "")}${l.contact_name ? " · " + esc(l.contact_name) : ""}</div>
     <div class="facts">${esc(facts(l))}${l.available_from ? " · frei ab " + esc(l.available_from) : ""}</div>
     ${l.offline ? `<div class="panel">⛔ <b>Nicht mehr online:</b> Die Anzeige wurde beim Portal gelöscht
       (bemerkt ${esc(new Date(l.offline).toLocaleDateString("de-DE"))}).</div>` : ""}
+    ${fakePanel(l)}
 
     <div class="panel steps">
       <button class="primary" id="copy">1. Anschreiben kopieren</button>
@@ -394,6 +431,7 @@ async function renderDetail(key) {
   </div>`;
 
   drawMap(l);
+  watchGallery();
   const setStatus = async (status, notes) => {
     await api(`/api/listings/${encodeURIComponent(key)}`,
       { method: "POST", body: JSON.stringify({ status, notes }) });

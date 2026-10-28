@@ -7,6 +7,7 @@ Ausstattung (Balkon, Terrasse, Garten) stehen auf der Detailseite.
 from __future__ import annotations
 
 import dataclasses
+import html as htmllib
 import logging
 import re
 from urllib.parse import urlparse
@@ -34,6 +35,8 @@ _LABELS = {
     "Summe Nebenkosten/Heizkosten", "Objektart", "Objekttyp", "Übernahme ab", "Ausstattung",
     "Baujahr",
 }
+# Große Galeriebilder; die Adressen sind signiert und laufen nach etwa einem Tag ab.
+_IMAGE = re.compile(r"https://media\.ohne-makler\.net/rs:fit:1920:1080/[^\"'\s<>]+")
 _END = ("Lage-Check", "Energie", "Ähnliche Immobilien", "Makleranfragen unerwünscht!")
 
 
@@ -56,7 +59,9 @@ def parse_search(html: str, property_type: str) -> list[Listing]:
             Listing(
                 source="ohnemakler",
                 external_id=card["data-om-id"],
-                url=f"{BASE}/immobilie/{card['data-om-id']}/",
+                # Die Adresse nutzt inzwischen ein Kürzel statt der Nummer.
+                url=BASE + card["href"] if card.get("href", "").startswith("/immobilie/")
+                else f"{BASE}/immobilie/{card['data-om-id']}/",
                 title=clean(h4.get_text()),
                 property_type=property_type,
                 zip_code=zip_code,
@@ -127,8 +132,14 @@ def parse_details(html: str, listing: Listing) -> Listing:
         if len(parts) > 1 and re.search(r"\d", parts[0]):
             street = parts[0]
 
+    images = {}
+    for url in _IMAGE.findall(html):
+        url = htmllib.unescape(url)
+        images.setdefault(url.split("?")[0], url)
+
     return dataclasses.replace(
         listing,
+        images=list(images.values()) or ([listing.image_url] if listing.image_url else []),
         street=street or listing.street,
         rent_cold=euro("Kaltmiete") if euro("Kaltmiete") is not None else listing.rent_cold,
         rent_warm=euro("Warmmiete"),

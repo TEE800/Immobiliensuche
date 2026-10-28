@@ -105,3 +105,26 @@ def test_leaflet_is_served_locally(tmp_path):
     assert client.get("/leaflet/leaflet.js").status_code == 200
     assert client.get("/leaflet/leaflet.css").headers["content-type"].startswith("text/css")
     assert client.get("/leaflet/..%2Fweb.py").status_code == 404
+
+
+def test_images_and_extra_fields(tmp_path):
+    import json
+
+    config, storage, client = setup(tmp_path)
+    login(client)
+    data = json.loads(storage.get("test:1")["data"])
+    data.update(bilder=2, offline_seit="2026-10-28T10:00:00+00:00", online_geprueft="2026-10-28T10:00:00+00:00",
+                description="Schlüssel kommen per Post.")
+    storage.update_data("test:1", data)
+    folder = config.database.parent / "bilder" / "test_1"
+    folder.mkdir(parents=True)
+    (folder / "1.jpg").write_bytes(b"eins")
+    (folder / "2.jpg").write_bytes(b"zwei")
+
+    detail = client.get("/api/listings/test:1").json()
+    assert detail["bilder"] == ["/bilder/test%3A1/1", "/bilder/test%3A1/2"]
+    assert detail["image_url"] == "/bilder/test%3A1/1"
+    assert detail["auffaellig"] == ["Schlüssel sollen per Post kommen"]
+    assert client.get("/bilder/test%3A1/2").content == b"zwei"
+    assert client.get("/bilder/test%3A1/3").status_code == 404
+    assert client.get("/bilder/..%2F..%2Fconfig.yaml/1").status_code == 404

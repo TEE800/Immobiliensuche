@@ -131,6 +131,17 @@ class Storage:
         )
         self.db.commit()
 
+    def update_url(self, key: str, url: str) -> None:
+        """Portale ändern manchmal die Adresse einer Anzeige; dann die neue merken."""
+        row = self.db.execute("SELECT url, data FROM listings WHERE key = ?", (key,)).fetchone()
+        if row is None or row["url"] == url:
+            return
+        data = json.loads(row["data"])
+        data["url"] = url
+        self.db.execute("UPDATE listings SET url = ?, data = ?, updated_at = ? WHERE key = ?",
+                        (url, json.dumps(data, ensure_ascii=False), _now(), key))
+        self.db.commit()
+
     def get(self, key: str) -> sqlite3.Row | None:
         return self.db.execute("SELECT * FROM listings WHERE key = ?", (key,)).fetchone()
 
