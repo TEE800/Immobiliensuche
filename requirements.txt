@@ -5,3 +5,4 @@ fastapi>=0.115
 uvicorn>=0.30
 pywebpush>=2.0
 python-multipart>=0.0.9
+tzdata>=2024.1  # Zeitzonen für Windows (zoneinfo)
