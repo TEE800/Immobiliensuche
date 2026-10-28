@@ -41,6 +41,8 @@ class Listing:
     available_from: str | None = None
     # Fahrzeiten zu den Arbeitsorten: [{"name", "minuten", "umstiege", "linien", "ungefaehr"}]
     commute: list = field(default_factory=list)
+    # Für welche Arbeitsorte ``commute`` berechnet wurde; ändern sie sich, wird neu gerechnet.
+    commute_for: str = ""
     raw: dict = field(default_factory=dict, repr=False)
 
     @property

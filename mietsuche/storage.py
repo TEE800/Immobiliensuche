@@ -117,6 +117,13 @@ class Storage:
             "SELECT * FROM listings WHERE matches = 1 ORDER BY first_seen DESC"
         ).fetchall()
 
+    def update_data(self, key: str, data: dict) -> None:
+        self.db.execute(
+            "UPDATE listings SET data = ?, updated_at = ? WHERE key = ?",
+            (json.dumps(data, ensure_ascii=False), _now(), key),
+        )
+        self.db.commit()
+
     def get(self, key: str) -> sqlite3.Row | None:
         return self.db.execute("SELECT * FROM listings WHERE key = ?", (key,)).fetchone()
 

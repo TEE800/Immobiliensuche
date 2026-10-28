@@ -248,3 +248,34 @@ def test_commute_only_for_matches(tmp_path):
         main_module.commute_times = original
     assert calls == ["1"]
     assert json.loads(storage.get("test:1")["data"])["commute"][0]["minuten"] == 20
+
+
+def test_commute_backfilled_for_older_matches(tmp_path):
+    from mietsuche.config import Workplace
+    import mietsuche.main as main_module
+
+    (tmp_path / "config.yaml").write_text("datenbank: db.sqlite\n")
+    config = load_config(tmp_path / "config.yaml")
+    storage = Storage(config.database)
+    run_once(config, storage, [FakeSource([make()])], [FakeNotifier()])  # noch ohne Arbeitsorte
+    assert json.loads(storage.get("test:1")["data"])["commute"] == []
+
+    calls = []
+
+    def fake_commute(listing, workplaces, arrival, transit):
+        calls.append(listing.external_id)
+        return [{"name": workplaces[0].name, "minuten": 20, "umstiege": 0, "linien": "S1", "ungefaehr": False}]
+
+    original = main_module.commute_times
+    main_module.commute_times = fake_commute
+    try:
+        config.workplaces = [Workplace("Fritzi", "Arbeit 1")]
+        run_once(config, storage, [], [FakeNotifier()], transit=object())
+        run_once(config, storage, [], [FakeNotifier()], transit=object())
+        assert calls == ["1"]  # nur einmal nachgetragen
+        config.workplaces = [Workplace("Kevin", "Arbeit 2")]
+        run_once(config, storage, [], [FakeNotifier()], transit=object())
+    finally:
+        main_module.commute_times = original
+    assert calls == ["1", "1"]
+    assert json.loads(storage.get("test:1")["data"])["commute"][0]["name"] == "Kevin"
