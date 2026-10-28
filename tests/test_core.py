@@ -297,3 +297,50 @@ def test_rent_index_for_matches_and_backfill(tmp_path):
     storage.update_data("test:1", data)
     run_once(config, storage, [FakeSource([])], [FakeNotifier()])
     assert json.loads(storage.get("test:1")["data"])["rent_index_for"] == VERSION
+
+
+def test_matches_gone_from_portal_are_marked_offline(tmp_path):
+    import mietsuche.main as main_module
+
+    class Checking(FakeSource):
+        def __init__(self, listings, online):
+            super().__init__(listings)
+            self.online = online
+            self.checked = []
+
+        def is_online(self, url):
+            self.checked.append(url)
+            if self.online == "error":
+                raise RuntimeError("Portal antwortet nicht")
+            return self.online
+
+    (tmp_path / "config.yaml").write_text("datenbank: db.sqlite\n")
+    config = load_config(tmp_path / "config.yaml")
+    storage = Storage(config.database)
+    run_once(config, storage, [Checking([make()], True)], [FakeNotifier()])
+
+    # Noch in der Suche: keine Einzelprüfung nötig.
+    source = Checking([make()], False)
+    run_once(config, storage, [source], [FakeNotifier()])
+    assert source.checked == []
+
+    # Aus der Suche verschwunden, Portal nicht erreichbar: nichts markieren.
+    source = Checking([], "error")
+    run_once(config, storage, [source], [FakeNotifier()])
+    assert source.checked and "offline_seit" not in json.loads(storage.get("test:1")["data"])
+
+    # Gelöscht: als offline merken und nicht ständig neu prüfen.
+    source = Checking([], False)
+    run_once(config, storage, [source], [FakeNotifier()])
+    run_once(config, storage, [source], [FakeNotifier()])
+    assert len(source.checked) == 1
+    assert json.loads(storage.get("test:1")["data"])["offline_seit"]
+
+    # Taucht wieder auf: Markierung weg.
+    run_once(config, storage, [Checking([make()], True)], [FakeNotifier()])
+    assert "offline_seit" not in json.loads(storage.get("test:1")["data"])
+
+    # Vor kurzem geprüft: erst nach ein paar Stunden wieder.
+    source = Checking([], True)
+    run_once(config, storage, [source], [FakeNotifier()])
+    assert source.checked == [] and main_module.ONLINE_CHECK_HOURS >= 1

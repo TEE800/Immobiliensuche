@@ -105,6 +105,8 @@ const CHECK_LABELS = {
 };
 const ICON = { ja: "✅", unklar: "❓", nein: "❌" };
 const CLOSED = ["abgesagt", "uninteressant"];
+// Gelöschte Anzeigen zählen nicht mehr als aktiv, bleiben aber unter ihrem Status sichtbar.
+const isActive = (l) => !CLOSED.includes(l.status) && !l.offline;
 
 let state = { listings: [], statuses: [], filter: "aktiv" };
 
@@ -295,9 +297,11 @@ function img(url, cls) {
 function renderTabs() {
   const counts = {};
   for (const l of state.listings) counts[l.status] = (counts[l.status] || 0) + 1;
-  const active = state.listings.filter((l) => !CLOSED.includes(l.status)).length;
+  const active = state.listings.filter(isActive).length;
+  const offline = state.listings.filter((l) => l.offline && !CLOSED.includes(l.status)).length;
   const tabs = [["aktiv", `Aktiv (${active})`]].concat(
-    state.statuses.filter((s) => counts[s]).map((s) => [s, `${LABELS[s]} (${counts[s]})`]));
+    state.statuses.filter((s) => counts[s]).map((s) => [s, `${LABELS[s]} (${counts[s]})`]),
+    offline ? [["offline", `Nicht mehr online (${offline})`]] : []);
   $("#tabs").innerHTML = tabs.map(([k, label]) =>
     `<button data-f="${k}" class="${state.filter === k ? "on" : ""}">${esc(label)}</button>`).join("");
   $("#tabs").hidden = location.hash.startsWith("#/anzeige/") || location.hash === "#/vorlage";
@@ -305,7 +309,9 @@ function renderTabs() {
 
 function renderList() {
   const items = state.listings.filter((l) =>
-    state.filter === "aktiv" ? !CLOSED.includes(l.status) : l.status === state.filter);
+    state.filter === "aktiv" ? isActive(l)
+      : state.filter === "offline" ? l.offline && !CLOSED.includes(l.status)
+      : l.status === state.filter);
   if (!items.length) {
     $("#app").innerHTML = `<p class="empty">${state.listings.length
       ? "Hier ist gerade nichts." : "Noch keine Treffer. Sobald etwas Passendes auftaucht, erscheint es hier."}</p>`;
@@ -314,7 +320,8 @@ function renderList() {
   $("#app").innerHTML = items.map((l) => {
     const c = l.checks;
     const chips = ["haustiere", "aussenbereich"].filter((k) => c[k]).map((k) =>
-      `<span class="chip">${ICON[c[k].ergebnis]} ${esc(CHECK_LABELS[k])}</span>`).join("");
+      `<span class="chip">${ICON[c[k].ergebnis]} ${esc(CHECK_LABELS[k])}</span>`).join("")
+      + (l.offline ? '<span class="chip">⛔ Nicht mehr online</span>' : "");
     const del = l.status === "uninteressant"
       ? `<button class="del" data-restore="${esc(l.key)}" title="Wiederherstellen">↩</button>`
       : `<button class="del" data-del="${esc(l.key)}" title="Löschen">🗑</button>`;
@@ -357,6 +364,8 @@ async function renderDetail(key) {
     <h2>${esc(l.title)}</h2>
     <div class="meta">${esc(l.address || "")}${l.contact_name ? " · " + esc(l.contact_name) : ""}</div>
     <div class="facts">${esc(facts(l))}${l.available_from ? " · frei ab " + esc(l.available_from) : ""}</div>
+    ${l.offline ? `<div class="panel">⛔ <b>Nicht mehr online:</b> Die Anzeige wurde beim Portal gelöscht
+      (bemerkt ${esc(new Date(l.offline).toLocaleDateString("de-DE"))}).</div>` : ""}
 
     <div class="panel steps">
       <button class="primary" id="copy">1. Anschreiben kopieren</button>

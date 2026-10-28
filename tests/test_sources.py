@@ -239,3 +239,21 @@ def test_ohne_makler_pages_until_nothing_new():
     found = source.search(Criteria(property_types=["wohnung"], cities=["Hamburg"]))
     assert [x.external_id for x in found] == ["1", "2", "3"]
     assert fetcher.urls[-1] == base + "?page=3"
+
+
+def test_still_online():
+    from mietsuche.sources.common import still_online
+
+    class Redirecting(FakeFetcher):
+        def get(self, url):
+            self.urls.append(url)
+            target = self.pages.get(url, url)
+            status = 404 if url.endswith("/weg/") else 200
+            return httpx.Response(status, text="<p>Wohnung</p>" if "gelöscht" not in url else
+                                  "<p>Diese Anzeige wurde gelöscht.</p>", request=httpx.Request("GET", target))
+
+    fetcher = Redirecting({"https://ka/s-anzeige/x/1": "https://ka/s-wohnung-mieten/hamburg"})
+    assert still_online(fetcher, "https://ka/s-anzeige/x/2", "/s-anzeige/")
+    assert not still_online(fetcher, "https://ka/s-anzeige/x/1", "/s-anzeige/")
+    assert not still_online(fetcher, "https://om/immobilie/weg/", "/immobilie/weg/")
+    assert not still_online(fetcher, "https://ka/s-anzeige/gelöscht", "/s-anzeige/")

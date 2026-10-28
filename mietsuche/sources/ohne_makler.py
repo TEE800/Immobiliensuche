@@ -9,13 +9,14 @@ from __future__ import annotations
 import dataclasses
 import logging
 import re
+from urllib.parse import urlparse
 
 from bs4 import BeautifulSoup
 
 from ..config import Criteria
 from ..models import Listing
 from . import Source, register
-from .common import Fetcher, clean, number, split_place, year_from_text
+from .common import Fetcher, clean, number, split_place, still_online, year_from_text
 
 log = logging.getLogger(__name__)
 
@@ -181,3 +182,7 @@ class OhneMakler(Source):
 
     def details(self, listing: Listing) -> Listing:
         return parse_details(self.fetcher.text(listing.url), listing)
+
+    def is_online(self, url: str) -> bool:
+        # Gelöschte Anzeigen geben 404 oder leiten auf eine andere Nummer um.
+        return still_online(self.fetcher, url, urlparse(url).path)
