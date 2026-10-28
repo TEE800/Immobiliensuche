@@ -37,6 +37,10 @@
   .tabs button { white-space: nowrap; padding: 6px 12px; border-radius: 999px; font-size: 14px; }
   .tabs button.on { background: var(--accent); color: var(--accent-text); }
   main { max-width: 720px; margin: 0 auto; padding: 12px 16px 40px; }
+  .item { position: relative; }
+  .item .del { position: absolute; top: 8px; right: 8px; width: 36px; height: 36px; padding: 0;
+    border-radius: 999px; font-size: 16px; line-height: 1; }
+  .item .card h2 { padding-right: 40px; }
   .card { display: flex; gap: 12px; background: var(--card); border-radius: 14px; padding: 10px;
     margin-bottom: 10px; color: inherit; text-decoration: none; border: 1px solid var(--line); }
   .thumb { width: 96px; height: 96px; flex: none; border-radius: 10px; object-fit: cover;
@@ -88,7 +92,7 @@
 <script>
 const LABELS = {
   neu: "Neu", angefragt: "Angefragt", antwort: "Antwort", besichtigung: "Besichtigung",
-  zusage: "Zusage", abgesagt: "Abgesagt", uninteressant: "Nicht interessant",
+  zusage: "Zusage", abgesagt: "Abgesagt", uninteressant: "Gelöscht",
 };
 const CHECK_LABELS = {
   objektart: "Objekt", ort: "Ort", zimmer: "Zimmer", miete: "Miete",
@@ -166,7 +170,10 @@ function renderList() {
     const c = l.checks;
     const chips = ["haustiere", "aussenbereich"].filter((k) => c[k]).map((k) =>
       `<span class="chip">${ICON[c[k].ergebnis]} ${esc(CHECK_LABELS[k])}</span>`).join("");
-    return `<a class="card" href="#/anzeige/${encodeURIComponent(l.key)}">
+    const del = l.status === "uninteressant"
+      ? `<button class="del" data-restore="${esc(l.key)}" title="Wiederherstellen">↩</button>`
+      : `<button class="del" data-del="${esc(l.key)}" title="Löschen">🗑</button>`;
+    return `<div class="item"><a class="card" href="#/anzeige/${encodeURIComponent(l.key)}">
       ${img(l.image_url, "thumb")}
       <div style="min-width:0">
         <h2>${esc(l.title)}</h2>
@@ -174,8 +181,22 @@ function renderList() {
         <div class="facts">${esc(facts(l))}</div>
         <div class="chips"><span class="chip s-${l.status}">${LABELS[l.status]}</span>${chips}
           <span class="chip">${ago(l.first_seen)}</span></div>
-      </div></a>`;
+      </div></a>${del}</div>`;
   }).join("");
+  document.querySelectorAll("[data-del]").forEach((b) => b.onclick = () =>
+    changeStatus(b.dataset.del, "uninteressant", "Gelöscht. Wiederherstellen unter „Gelöscht“."));
+  document.querySelectorAll("[data-restore]").forEach((b) => b.onclick = () =>
+    changeStatus(b.dataset.restore, "neu", "Wiederhergestellt"));
+}
+
+async function changeStatus(key, status, message) {
+  try {
+    await api(`/api/listings/${encodeURIComponent(key)}`, { method: "POST", body: JSON.stringify({ status }) });
+    await load();
+    renderTabs();
+    renderList();
+    toast(message);
+  } catch (e) { if (e.message !== "login") toast(e.message); }
 }
 
 async function renderDetail(key) {
@@ -194,6 +215,7 @@ async function renderDetail(key) {
       <button class="primary" id="copy">1. Anschreiben kopieren</button>
       <a class="btn" href="${esc(l.url)}" target="_blank" rel="noopener">2. Anzeige öffnen</a>
       <button id="asked">${l.status === "neu" ? "3. Als angefragt markieren" : "✓ " + LABELS[l.status]}</button>
+      ${l.status === "uninteressant" ? "" : '<button id="delete">🗑 Löschen</button>'}
     </div>
 
     <div class="panel"><h3>Anschreiben</h3>
@@ -222,6 +244,11 @@ async function renderDetail(key) {
     catch { $("#letter").select(); document.execCommand("copy"); toast("Anschreiben kopiert"); }
   };
   $("#asked").onclick = () => setStatus("angefragt");
+  if ($("#delete")) $("#delete").onclick = async () => {
+    await setStatus("uninteressant");
+    location.hash = "#/";
+    toast("Gelöscht. Wiederherstellen unter „Gelöscht“.");
+  };
   document.querySelectorAll("[data-s]").forEach((b) => b.onclick = () => setStatus(b.dataset.s));
   $("#notes").onblur = async (e) => {
     await api(`/api/listings/${encodeURIComponent(key)}`,
