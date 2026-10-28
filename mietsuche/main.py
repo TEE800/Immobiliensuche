@@ -28,8 +28,8 @@ def _commute_key(config: Config) -> str:
         f"{w.name}={w.address}" + "".join(f"@{a.label} {a.clock}" for a in w.arrivals)
         for w in config.workplaces
     )
-    # v3: mit Fahrtdetails und Koordinaten für die Karte; ältere Treffer werden neu gerechnet.
-    return f"v3|{config.arrival_time}|{places}"
+    # v4: bequemere Verbindungen (kurze Fußwege, passende Ankunft); ältere Treffer werden neu gerechnet.
+    return f"v4|{config.arrival_time}|{places}"
 
 
 def _update_commutes(config: Config, storage: Storage, transit) -> None:

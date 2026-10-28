@@ -21,6 +21,9 @@ log = logging.getLogger(__name__)
 
 API = "https://api.transitous.org/api"
 BERLIN = ZoneInfo("Europe/Berlin")
+# Längster einzelner Fußweg, den wir noch bequem finden, und wie früh man da sein darf.
+MAX_WALK_M = 600
+EARLY = timedelta(minutes=20)
 MODES = {"BUS": "Bus", "SUBWAY": "U", "SUBURBAN": "S", "TRAM": "Tram", "FERRY": "Fähre",
          "RAIL": "Zug", "REGIONAL_RAIL": "Zug", "REGIONAL_FAST_RAIL": "Zug", "METRO": "U"}
 
@@ -89,29 +92,64 @@ class Transitous:
             self._places[text] = (hits[0]["lat"], hits[0]["lon"]) if hits else None
         return self._places[text]
 
-    def plan(self, start: tuple[float, float], goal: tuple[float, float], arrive: datetime,
-             goal_name: str = "Arbeit") -> dict | None:
+    def _plan(self, start, goal, arrive: datetime, **limits) -> dict:
         r = self.client.get(f"{API}/v5/plan", params={
             "fromPlace": f"{start[0]},{start[1]}",
             "toPlace": f"{goal[0]},{goal[1]}",
             "time": arrive.strftime("%Y-%m-%dT%H:%M:%SZ"),
             "arriveBy": "true",
+            **limits,
         })
         r.raise_for_status()
-        data = r.json()
-        options = [
-            {"minuten": round(it["duration"] / 60), "umstiege": it.get("transfers", 0), "linien": _lines(it),
-             "schritte": _steps(it.get("legs", []), goal_name)}
-            for it in data.get("itineraries", [])
-        ]
+        return r.json()
+
+    @staticmethod
+    def _options(data: dict, goal_name: str) -> list[dict]:
+        def option(it: dict, lines: str, changes: int) -> dict:
+            legs = it.get("legs", [])
+            return {"minuten": round(it["duration"] / 60), "umstiege": changes, "linien": lines,
+                    "schritte": _steps(legs, goal_name),
+                    "_an": _when(it["endTime"]) if it.get("endTime") else None,
+                    "_fuss": max((leg.get("distance", 0) for leg in legs if leg.get("mode") == "WALK"),
+                                 default=0)}
+
+        options = [option(it, _lines(it), it.get("transfers", 0)) for it in data.get("itineraries", [])]
         # Zu Fuß ist manchmal schneller als jede Bahn.
-        options += [
-            {"minuten": round(it["duration"] / 60), "umstiege": 0, "linien": "zu Fuß",
-             "schritte": _steps(it.get("legs", []), goal_name)}
-            for it in data.get("direct", [])
-            if all(leg.get("mode") == "WALK" for leg in it.get("legs", []))
-        ]
-        return min(options, key=lambda o: (o["minuten"], o["umstiege"])) if options else None
+        options += [option(it, "zu Fuß", 0) for it in data.get("direct", [])
+                    if all(leg.get("mode") == "WALK" for leg in it.get("legs", []))]
+        return options
+
+    def plan(self, start: tuple[float, float], goal: tuple[float, float], arrive: datetime,
+             goal_name: str = "Arbeit") -> dict | None:
+        options = self._options(self._plan(start, goal, arrive), goal_name)
+        if options and not any(o["_fuss"] <= MAX_WALK_M for o in options):
+            # Der Fahrplandienst nimmt lange Fußwege in Kauf; dann nach Bus-Anschlüssen fragen.
+            options += self._options(self._plan(start, goal, arrive, maxPreTransitTime=600,
+                                                maxPostTransitTime=480), goal_name)
+        best = choose(options, arrive)
+        return {k: v for k, v in best.items() if not k.startswith("_")} if best else None
+
+
+def _when(stamp: str) -> datetime:
+    return datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+
+
+def choose(options: list[dict], arrive: datetime) -> dict | None:
+    """Bequemste Verbindung, die kurz vor der Zielzeit ankommt.
+
+    Erst Verbindungen, die höchstens 20 Minuten zu früh da sind (sonst die
+    spätesten), dann solche ohne langen Fußweg, dann die schnellste.
+    """
+    if not options:
+        return None
+    timed = [o for o in options if o["_an"] and o["_an"] <= arrive]
+    window = [o for o in timed if o["_an"] >= arrive - EARLY]
+    if not window and timed:
+        latest = max(o["_an"] for o in timed)
+        window = [o for o in timed if o["_an"] >= latest - EARLY]
+    pool = window or options
+    pool = [o for o in pool if o["_fuss"] <= MAX_WALK_M] or pool
+    return min(pool, key=lambda o: (o["minuten"], o["umstiege"], -(o["_an"] or arrive).timestamp()))
 
 
 def distance_km(a: tuple[float, float], b: tuple[float, float]) -> float:

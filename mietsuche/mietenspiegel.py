@@ -22,8 +22,10 @@ from .sources.common import USER_AGENT
 log = logging.getLogger(__name__)
 
 TABLE = json.loads((Path(__file__).parent / "tabellen" / "mietenspiegel_2025.json").read_text(encoding="utf-8"))
+# Kein Mietspiegel außerhalb Hamburgs: Angebotsmieten der Investitionsbank Schleswig-Holstein.
+IBSH = json.loads((Path(__file__).parent / "tabellen" / "ibsh_angebotsmieten_2024.json").read_text(encoding="utf-8"))
 # Ändert sich die Tabelle oder die Rechnung, werden alte Treffer neu verglichen.
-VERSION = "2025.1"
+VERSION = "2025.2"
 WFS = "https://geodienste.hamburg.de/HH_WFS_Wohnlagen"
 
 def split_street(street: str) -> tuple[str, int | None, str]:
@@ -89,6 +91,8 @@ def _fields(area: float, lage: str | None, year: int | None) -> list[dict]:
 
 def compare(listing: Listing, lage: str | None) -> dict:
     """Kaltmiete je m² im Vergleich zum Mietenspiegel."""
+    if listing.city in IBSH["orte"]:
+        return compare_offers(listing)
     if listing.city != "Hamburg":
         return {"hinweis": "Der Hamburger Mietenspiegel gilt hier nicht."}
     if listing.property_type == "haus":
@@ -116,3 +120,24 @@ def compare(listing: Listing, lage: str | None) -> dict:
     result["bewertung"] = ("über" if qm > result["spanne_bis"]
                            else "unter" if qm < result["spanne_von"] else "im Rahmen")
     return result
+
+
+def compare_offers(listing: Listing) -> dict:
+    """Schenefeld und Halstenbek: Vergleich mit dem Median der Angebotsmieten (IB.SH)."""
+    note = "Kein amtlicher Mietspiegel. Vergleich mit dem Durchschnitt der Wohnungsanzeigen 2024 (IB.SH)."
+    if listing.property_type == "haus":
+        return {"hinweis": note + " Die Werte gelten nur für Wohnungen."}
+    if not listing.rent_cold or not listing.living_area:
+        return {"hinweis": "Kaltmiete oder Wohnfläche fehlt in der Anzeige."}
+    place = IBSH["orte"][listing.city]
+    if listing.year_built and listing.year_built >= 2022:
+        median, group = IBSH["neubau_kreis_pinneberg"], "Neubau im Kreis Pinneberg"
+    else:
+        median, group = next(
+            (m, f"{listing.city}, {lo} bis unter {hi} m²" if hi else f"{listing.city}, ab {lo} m²")
+            for lo, hi, m in place["groessen"]
+            if lo <= listing.living_area and (hi is None or listing.living_area < hi)
+        )
+    qm = listing.rent_cold / listing.living_area
+    return {"art": "angebote", "qm": round(qm, 2), "median": median, "gruppe": group,
+            "abweichung": round((qm / median - 1) * 100), "hinweis": note}
