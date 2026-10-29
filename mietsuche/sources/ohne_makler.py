@@ -139,7 +139,7 @@ def parse_details(html: str, listing: Listing) -> Listing:
 
     return dataclasses.replace(
         listing,
-        images=list(images.values()) or ([listing.image_url] if listing.image_url else []),
+        images=list(images.values()),
         street=street or listing.street,
         rent_cold=euro("Kaltmiete") if euro("Kaltmiete") is not None else listing.rent_cold,
         rent_warm=euro("Warmmiete"),

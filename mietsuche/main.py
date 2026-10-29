@@ -128,13 +128,46 @@ def _save_images(base, listing: Listing) -> int:
         return 0
 
 
+# So oft und in diesem Abstand wird eine Detailseite ohne Galerie erneut versucht,
+# danach bleibt das Vorschaubild.
+IMAGE_ATTEMPTS = 5
+IMAGE_RETRY_HOURS = 2
+
+
+def _store_images(data: dict, listing: Listing, base, image_url: str | None) -> None:
+    """Bilder speichern; ohne Galerie auf der Detailseite beim nächsten Lauf erneut versuchen."""
+    data["images"] = listing.images
+    if listing.images:
+        data["bilder"] = _save_images(base, listing)
+        data.pop("bilder_versuche", None)
+        data.pop("bilder_versucht", None)
+        return
+    data["bilder_versuche"] = data.get("bilder_versuche", 0) + 1
+    data["bilder_versucht"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    data.pop("bilder", None)
+    if data["bilder_versuche"] >= IMAGE_ATTEMPTS and image_url:
+        listing.images = data["images"] = [image_url]
+        data["bilder"] = _save_images(base, listing)
+
+
+def _needs_images(data: dict, image_url: str | None) -> bool:
+    if data.get("bilder_versuche", 0) >= IMAGE_ATTEMPTS:
+        return False
+    tried = data.get("bilder_versucht")
+    if tried and datetime.now(timezone.utc) - datetime.fromisoformat(tried) < timedelta(hours=IMAGE_RETRY_HOURS):
+        return False
+    # Ältere Treffer, bei denen statt der Galerie nur das Vorschaubild gespeichert wurde.
+    only_thumbnail = data.get("bilder", 0) <= 1 and data.get("images") == [image_url]
+    return "bilder" not in data or only_thumbnail
+
+
 def _update_images(storage: Storage, sources: dict[str, Source], base) -> None:
-    """Bilder (und Angaben zum Anbieter) für Treffer von vor dieser Funktion nachladen."""
+    """Bilder (und Angaben zum Anbieter) für ältere Treffer nachladen."""
     done = 0
     for row in storage.matches():
         source = sources.get(row["source"])
         data = json.loads(row["data"])
-        if (source is None or "bilder" in data or data.get("offline_seit")
+        if (source is None or not _needs_images(data, row["image_url"]) or data.get("offline_seit")
                 or row["status"] in ("abgesagt", "uninteressant")):
             continue
         if done >= IMAGE_BACKFILL_PER_RUN:
@@ -145,9 +178,8 @@ def _update_images(storage: Storage, sources: dict[str, Source], base) -> None:
         except Exception as e:
             log.warning("Detailseite %s für Bilder nicht lesbar: %s", row["url"], e)
             continue
-        data["images"] = fresh.images
         data["contact_since"] = fresh.contact_since
-        data["bilder"] = _save_images(base, fresh)
+        _store_images(data, fresh, base, row["image_url"])
         storage.update_data(row["key"], data)
 
 
@@ -201,7 +233,7 @@ def run_once(config: Config, storage: Storage, sources: list[Source], notifiers:
             storage.add(listing, verdict, letter)
             if verdict.matches:
                 data = json.loads(storage.get(listing.key)["data"])
-                data["bilder"] = _save_images(image_dir, listing)
+                _store_images(data, listing, image_dir, listing.image_url)
                 storage.update_data(listing.key, data)
                 new_matches += 1
                 log.info("Treffer: %s %s", listing.title, listing.url)
