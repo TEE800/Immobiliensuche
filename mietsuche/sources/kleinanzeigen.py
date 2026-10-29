@@ -174,7 +174,9 @@ def parse_details(html: str, listing: Listing) -> Listing:
         description=description,
         contact_name=clean(contact_el.get_text()) if contact_el else None,
         contact_since=f"{since.group(3)}-{since.group(2)}-{since.group(1)}" if since else None,
-        images=images or ([listing.image_url] if listing.image_url else []),
+        # Keine Galerie gefunden (Kleinanzeigen liefert manchmal eine andere Seitenfassung):
+        # leer lassen, dann wird später erneut geladen statt nur das Vorschaubild zu nehmen.
+        images=images,
         available_from=f"{month}/{year}" if month and year else None,
         year_built=year_from_text(description),
         raw=attrs,

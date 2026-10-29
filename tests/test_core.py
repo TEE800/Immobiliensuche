@@ -408,3 +408,48 @@ def test_new_portal_address_is_remembered(tmp_path):
     run_once(config, storage, [FakeSource([make(url="https://example.org/neu")])], [FakeNotifier()])
     row = storage.get("test:1")
     assert row["url"] == json.loads(row["data"])["url"] == "https://example.org/neu"
+
+
+def test_missing_gallery_is_retried(tmp_path, monkeypatch):
+    import mietsuche.main as main_module
+
+    monkeypatch.setattr(main_module.bilder, "download", lambda base, key, urls, **kw: len(urls))
+
+    class Flaky(FakeSource):
+        gallery: list = []
+
+        def details(self, listing):
+            listing.images = list(self.gallery)
+            return listing
+
+    (tmp_path / "config.yaml").write_text("datenbank: db.sqlite\n")
+    config = load_config(tmp_path / "config.yaml")
+    storage = Storage(config.database)
+    source = Flaky([make(image_url="https://img/thumb")])
+    run_once(config, storage, [source], [FakeNotifier()])
+    data = json.loads(storage.get("test:1")["data"])
+    assert "bilder" not in data and data["bilder_versuche"] == 1
+
+    # Nach der Wartezeit klappt es mit der Galerie.
+    data["bilder_versucht"] = "2026-01-01T00:00:00+00:00"
+    storage.update_data("test:1", data)
+    source.gallery = ["https://img/1", "https://img/2", "https://img/3"]
+    run_once(config, storage, [source], [FakeNotifier()])
+    data = json.loads(storage.get("test:1")["data"])
+    assert data["bilder"] == 3 and "bilder_versuche" not in data
+
+    # Früher gespeichert: nur das Vorschaubild → wird erneut geladen.
+    data.update(bilder=1, images=["https://img/thumb"])
+    storage.update_data("test:1", data)
+    run_once(config, storage, [source], [FakeNotifier()])
+    assert json.loads(storage.get("test:1")["data"])["bilder"] == 3
+
+    # Nach mehreren Fehlversuchen bleibt es beim Vorschaubild.
+    data = json.loads(storage.get("test:1")["data"])
+    data.pop("bilder")
+    data.update(bilder_versuche=main_module.IMAGE_ATTEMPTS - 1, bilder_versucht="2026-01-01T00:00:00+00:00")
+    storage.update_data("test:1", data)
+    source.gallery = []
+    run_once(config, storage, [source], [FakeNotifier()])
+    data = json.loads(storage.get("test:1")["data"])
+    assert data["bilder"] == 1 and data["images"] == ["https://img/thumb"]
