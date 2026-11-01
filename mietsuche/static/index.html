@@ -384,8 +384,10 @@ function renderList() {
           <span class="chip">${ago(l.first_seen)}</span></div>
       </div></a>${del}</div>`;
   }).join("");
-  document.querySelectorAll("[data-del]").forEach((b) => b.onclick = () =>
-    changeStatus(b.dataset.del, "uninteressant", "Gelöscht. Wiederherstellen unter „Gelöscht“."));
+  document.querySelectorAll("[data-del]").forEach((b) => b.onclick = () => {
+    state.filter = "aktiv";  // nach dem Löschen zurück zu „Aktiv“
+    changeStatus(b.dataset.del, "uninteressant", "Gelöscht. Wiederherstellen unter „Gelöscht“.");
+  });
   document.querySelectorAll("[data-restore]").forEach((b) => b.onclick = () =>
     changeStatus(b.dataset.restore, "neu", "Wiederhergestellt"));
 }
@@ -454,12 +456,15 @@ async function renderDetail(key) {
     catch { $("#letter").select(); document.execCommand("copy"); toast("Anschreiben kopiert"); }
   };
   $("#asked").onclick = () => setStatus("angefragt");
-  if ($("#delete")) $("#delete").onclick = async () => {
+  const remove = async () => {
     await setStatus("uninteressant");
+    state.filter = "aktiv";  // nach dem Löschen zurück zu „Aktiv“
     location.hash = "#/";
     toast("Gelöscht. Wiederherstellen unter „Gelöscht“.");
   };
-  document.querySelectorAll("[data-s]").forEach((b) => b.onclick = () => setStatus(b.dataset.s));
+  if ($("#delete")) $("#delete").onclick = remove;
+  document.querySelectorAll("[data-s]").forEach((b) => b.onclick = () =>
+    b.dataset.s === "uninteressant" && l.status !== "uninteressant" ? remove() : setStatus(b.dataset.s));
   $("#notes").onblur = async (e) => {
     await api(`/api/listings/${encodeURIComponent(key)}`,
       { method: "POST", body: JSON.stringify({ notes: e.target.value }) });
