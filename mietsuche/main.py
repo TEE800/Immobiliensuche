@@ -11,7 +11,7 @@ import threading
 import time
 from datetime import datetime, timedelta, timezone
 
-from . import bilder
+from . import bilder, postfach
 from .commute import Transitous, commute_times
 from .config import Config, load_config
 from .filters import evaluate, worth_details
@@ -271,6 +271,11 @@ def search_loop(config: Config, sources: list[Source], notifiers_factory, once: 
     while True:
         found = run_once(config, storage, sources, notifiers)
         log.info("Suchlauf fertig, %d neue Treffer", found)
+        try:
+            postfach.check(config.database.parent, storage, notifiers)
+        except Exception:
+            # Ein Fehler im Postfach soll die Suche nicht anhalten.
+            log.exception("Postfach-Prüfung fehlgeschlagen")
         if once:
             return
         # Etwas Zufall im Abstand, damit die Abfragen nicht im festen Takt kommen.

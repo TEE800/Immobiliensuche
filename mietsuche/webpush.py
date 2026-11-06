@@ -72,6 +72,11 @@ class WebPush:
     def notify(self, row) -> None:
         self.send(push_payload(row))
 
+    def notify_reply(self, row, mail) -> None:
+        from .postfach import reply_payload
+
+        self.send(reply_payload(row, mail))
+
     def send(self, payload: dict) -> None:
         subscriptions = self.storage.push_subscriptions()
         if not subscriptions:

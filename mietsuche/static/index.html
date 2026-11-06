@@ -91,6 +91,9 @@
     color: var(--bg); padding: 10px 16px; border-radius: 10px; opacity: 0; transition: opacity .2s;
     pointer-events: none; }
   .toast.show { opacity: 1; }
+  .field { width: 100%; font: inherit; font-size: 16px; border: 1px solid var(--line); border-radius: 10px;
+    padding: 10px; background: var(--bg); color: var(--text); margin-top: 8px; }
+  .err { color: var(--bad); }
   #map { height: 260px; border-radius: 10px; margin-bottom: 8px; }
 </style>
 <link rel="stylesheet" href="/leaflet/leaflet.css">
@@ -101,6 +104,7 @@
   <div class="bar">
     <h1>Mietsuche</h1>
     <button id="push" hidden>🔔 Push aktivieren</button>
+    <a class="btn" href="#/postfach" title="Antworten der Vermieter im Postfach erkennen">📬</a>
     <a class="btn" href="#/vorlage" title="Anschreiben-Vorlage">✎ Vorlage</a>
   </div>
   <div class="tabs" id="tabs"></div>
@@ -262,6 +266,15 @@ function drawMap(l) {
   home.bringToFront();
 }
 
+function repliesPanel(l) {
+  if (!l.antworten || !l.antworten.length) return "";
+  const where = l.source === "kleinanzeigen" ? "in der Kleinanzeigen-App" : "in deinem E-Mail-Postfach";
+  const rows = l.antworten.map((a) => `<li><b>${esc(new Date(a.datum).toLocaleString("de-DE",
+    { dateStyle: "short", timeStyle: "short" }))}</b> · ${esc(a.absender)}<br>${esc(a.betreff)}</li>`).join("");
+  return `<div class="panel"><h3>📬 Antwort vom Vermieter</h3><ul class="checks">${rows}</ul>
+    <div class="meta">Lesen und antworten ${where}.</div></div>`;
+}
+
 function marketShort(l) {
   const m = l.market;
   if (!m || !m.median) return "";
@@ -350,7 +363,7 @@ function renderTabs() {
     offline ? [["offline", `Nicht mehr online (${offline})`]] : []);
   $("#tabs").innerHTML = tabs.map(([k, label]) =>
     `<button data-f="${k}" class="${state.filter === k ? "on" : ""}">${esc(label)}</button>`).join("");
-  $("#tabs").hidden = location.hash.startsWith("#/anzeige/") || location.hash === "#/vorlage";
+  $("#tabs").hidden = location.hash.startsWith("#/anzeige/") || ["#/vorlage", "#/postfach"].includes(location.hash);
 }
 
 function renderList() {
@@ -434,6 +447,7 @@ async function renderDetail(key) {
       <textarea id="notes" rows="3" placeholder="z. B. Besichtigung Do 18 Uhr">${esc(l.notes)}</textarea>
     </div>
 
+    ${repliesPanel(l)}
     ${mapPanel(l)}
     ${commutePanel(l)}
     ${rentPanel(l)}
@@ -492,6 +506,59 @@ async function renderTemplate() {
   };
 }
 
+async function renderMailbox() {
+  const p = await api("/api/postfach");
+  const when = (iso) => new Date(iso).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" });
+  const connected = p.verbunden ? `<div class="panel"><h3>✓ Verbunden mit ${esc(p.adresse)}</h3>
+      <div class="meta">${p.zuletzt ? "Zuletzt nachgesehen: " + esc(when(p.zuletzt)) : "Wird gleich zum ersten Mal geprüft."}</div>
+      ${p.fehler ? `<p class="err">Problem beim letzten Versuch: ${esc(p.fehler)}</p>` : ""}
+      <button id="off" style="width:100%;margin-top:10px">Verbindung trennen und Passwort löschen</button></div>` : "";
+  $("#app").innerHTML = `<div class="detail">
+    <button class="back" onclick="location.hash='#/'">← Alle Treffer</button>
+    <h2>Antworten der Vermieter erkennen</h2>
+    <div class="meta">Die Mietsuche schaut bei jedem Suchlauf in dein E-Mail-Postfach. Kommt eine Antwort zu einem
+      Treffer (bei Kleinanzeigen die Mail „neue Nachricht“, bei Ohne-Makler die Antwort des Vermieters), springt der
+      Treffer auf „Antwort“ und du bekommst eine Push-Nachricht.</div>
+    ${connected}
+    <div class="panel"><h3>${p.verbunden ? "Anderes Postfach verbinden" : "Postfach verbinden"}</h3>
+      <input class="field" id="adr" type="email" placeholder="E-Mail-Adresse" value="${esc(p.adresse)}" autocomplete="email">
+      <input class="field" id="pw" type="password" placeholder="Passwort des Postfachs" autocomplete="off">
+      <details style="margin-top:8px"><summary>Anderer Anbieter als web.de, GMX, Gmail, Outlook, T-Online</summary>
+        <input class="field" id="srv" placeholder="Posteingangsserver (IMAP), z. B. imap.example.de" value="${esc(p.server)}"></details>
+      <p class="err" id="err" hidden></p>
+      <button class="primary" id="connect" style="width:100%;margin-top:10px">Verbinden</button></div>
+    <div class="panel"><h3>Was die Mietsuche damit macht</h3><ul class="checks">
+      <li>Sie liest nur Absender und Betreff neuer Mails und öffnet nur Mails von Kleinanzeigen, Ohne-Makler
+        oder Antworten (Betreff „AW:“ / „Re:“). Alles bleibt auf dem Laptop.</li>
+      <li>Sie verschickt, löscht und verschiebt nichts. Mails bleiben ungelesen.</li>
+      <li>Das Passwort wird verschlüsselt nur für deinen Windows-Benutzer gespeichert.</li>
+      <li>Nachteil: Technisch hätte sie Zugriff auf das ganze Postfach. Mit „Verbindung trennen“ ist das Passwort sofort weg.</li>
+    </ul></div>
+  </div>`;
+  $("#connect").onclick = async () => {
+    const btn = $("#connect");
+    btn.disabled = true;
+    btn.textContent = "Wird geprüft …";
+    try {
+      await api("/api/postfach", { method: "PUT", body: JSON.stringify(
+        { adresse: $("#adr").value, passwort: $("#pw").value, server: $("#srv").value || null }) });
+      toast("Postfach verbunden");
+      renderMailbox();
+    } catch (e) {
+      if (e.message === "login") return;
+      $("#err").textContent = e.message;
+      $("#err").hidden = false;
+      btn.disabled = false;
+      btn.textContent = "Verbinden";
+    }
+  };
+  if ($("#off")) $("#off").onclick = async () => {
+    await api("/api/postfach", { method: "DELETE" });
+    toast("Verbindung getrennt");
+    renderMailbox();
+  };
+}
+
 async function load() {
   const data = await api("/api/listings");
   state.listings = data.listings;
@@ -503,6 +570,7 @@ async function route() {
   const m = location.hash.match(/^#\/anzeige\/(.+)$/);
   if (m) { await renderDetail(decodeURIComponent(m[1])); window.scrollTo(0, 0); }
   else if (location.hash === "#/vorlage") await renderTemplate();
+  else if (location.hash === "#/postfach") await renderMailbox();
   else renderList();
 }
 
@@ -562,7 +630,7 @@ window.addEventListener("hashchange", route);
 document.addEventListener("visibilitychange", async () => {
   // Auf der Detailseite nicht neu zeichnen, sonst gehen Änderungen am Anschreiben verloren.
   if (document.visibilityState === "visible" && !location.hash.startsWith("#/anzeige/")
-      && location.hash !== "#/vorlage") {
+      && !["#/vorlage", "#/postfach"].includes(location.hash)) {
     await load();
     route();
   }
