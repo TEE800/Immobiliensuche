@@ -27,7 +27,16 @@
   header { position: sticky; top: 0; z-index: 2; background: var(--bg);
     padding: max(12px, env(safe-area-inset-top)) 16px 8px; border-bottom: 1px solid var(--line); }
   .bar { display: flex; align-items: center; gap: 12px; max-width: 720px; margin: 0 auto; }
-  h1 { font-size: 20px; margin: 0; flex: 1; }
+  h1 { font-size: 20px; margin: 0; flex: 1; white-space: nowrap; }
+  /* Knöpfe oben: alle gleich groß; am Handy nur das Zeichen, am breiten Bildschirm mit Wort. */
+  .bar .hb { height: 40px; min-width: 40px; padding: 0 10px; white-space: nowrap; flex: none;
+    font-size: 15px; }
+  .bar .hb .ic { font-size: 18px; line-height: 1; }
+  @media (max-width: 560px) {
+    .bar { gap: 8px; }
+    .bar .hb { width: 40px; padding: 0; }
+    .bar .hb .lbl { display: none; }
+  }
   button, .btn { font: inherit; border: 0; border-radius: 10px; padding: 10px 14px; cursor: pointer;
     background: var(--soft); color: var(--text); text-decoration: none; display: inline-flex;
     align-items: center; justify-content: center; gap: 6px; }
@@ -103,9 +112,9 @@
 <header>
   <div class="bar">
     <h1>Mietsuche</h1>
-    <button id="push" hidden>🔔 Push aktivieren</button>
-    <a class="btn" href="#/postfach" title="Antworten der Vermieter im Postfach erkennen">📬</a>
-    <a class="btn" href="#/vorlage" title="Anschreiben-Vorlage">✎ Vorlage</a>
+    <button id="push" class="hb" hidden title="Push-Nachrichten aktivieren" aria-label="Push-Nachrichten aktivieren"><span class="ic">🔔</span><span class="lbl">Push aktivieren</span></button>
+    <a class="btn hb" href="#/postfach" title="Antworten der Vermieter im Postfach erkennen" aria-label="Postfach"><span class="ic">📬</span><span class="lbl">Postfach</span></a>
+    <a class="btn hb" href="#/vorlage" title="Anschreiben-Vorlage" aria-label="Anschreiben-Vorlage"><span class="ic">✏️</span><span class="lbl">Vorlage</span></a>
   </div>
   <div class="tabs" id="tabs"></div>
 </header>
@@ -634,7 +643,9 @@ async function setupPush() {
 }
 
 function showTestButton(btn) {
-  btn.textContent = "🔔 Push testen";
+  btn.querySelector(".lbl").textContent = "Push testen";
+  btn.title = "Test-Nachricht ans Handy schicken";
+  btn.setAttribute("aria-label", "Push testen");
   btn.onclick = async () => {
     try {
       await api("/api/push/test", { method: "POST" });
