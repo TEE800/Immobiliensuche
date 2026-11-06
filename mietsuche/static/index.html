@@ -417,11 +417,13 @@ async function changeStatus(key, status, message) {
 
 async function renderDetail(key) {
   const l = await api(`/api/listings/${encodeURIComponent(key)}`);
+  // Inzwischen woanders hin gewechselt (z. B. nach dem Löschen zur Liste)? Dann nicht drüberzeichnen.
+  if (currentKey() !== key) return;
   const checks = Object.entries(l.checks).map(([k, c]) =>
     `<li class="${c.ergebnis === "ja" ? "ok" : c.ergebnis}">${ICON[c.ergebnis]}
       <b>${esc(CHECK_LABELS[k] || k)}:</b> ${esc(c.hinweis)}</li>`).join("");
   $("#app").innerHTML = `<div class="detail">
-    <button class="back" onclick="location.hash='#/'">← Alle Treffer</button>
+    <button class="back" onclick="goList()">← Alle Treffer</button>
     ${gallery(l)}
     <h2>${esc(l.title)}</h2>
     <div class="meta">${esc(l.address || "")}${l.contact_name ? " · " + esc(l.contact_name) : ""}</div>
@@ -471,9 +473,12 @@ async function renderDetail(key) {
   };
   $("#asked").onclick = () => setStatus("angefragt");
   const remove = async () => {
-    await setStatus("uninteressant");
-    state.filter = "aktiv";  // nach dem Löschen zurück zu „Aktiv“
-    location.hash = "#/";
+    // Nicht erst die Detailseite neu zeichnen, sondern direkt zur Liste „Aktiv“.
+    await api(`/api/listings/${encodeURIComponent(key)}`,
+      { method: "POST", body: JSON.stringify({ status: "uninteressant" }) });
+    await load();
+    state.filter = "aktiv";
+    goList();
     toast("Gelöscht. Wiederherstellen unter „Gelöscht“.");
   };
   if ($("#delete")) $("#delete").onclick = remove;
@@ -488,10 +493,11 @@ async function renderDetail(key) {
 
 async function renderTemplate() {
   const t = await api("/api/vorlage");
+  if (location.hash !== "#/vorlage") return;
   const help = Object.entries(t.placeholders).map(([k, v]) =>
     `<li><code>{${esc(k)}}</code> ${esc(v)}</li>`).join("");
   $("#app").innerHTML = `<div class="detail">
-    <button class="back" onclick="location.hash='#/'">← Alle Treffer</button>
+    <button class="back" onclick="goList()">← Alle Treffer</button>
     <h2>Anschreiben-Vorlage</h2>
     <div class="meta">Gilt sofort für alle Treffer. Platzhalter werden pro Anzeige ausgefüllt.</div>
     <div class="panel"><textarea id="tpl" rows="18">${esc(t.text)}</textarea>
@@ -514,7 +520,7 @@ async function renderMailbox() {
       ${p.fehler ? `<p class="err">Problem beim letzten Versuch: ${esc(p.fehler)}</p>` : ""}
       <button id="off" style="width:100%;margin-top:10px">Verbindung trennen und Passwort löschen</button></div>` : "";
   $("#app").innerHTML = `<div class="detail">
-    <button class="back" onclick="location.hash='#/'">← Alle Treffer</button>
+    <button class="back" onclick="goList()">← Alle Treffer</button>
     <h2>Antworten der Vermieter erkennen</h2>
     <div class="meta">Die Mietsuche schaut bei jedem Suchlauf in dein E-Mail-Postfach. Kommt eine Antwort zu einem
       Treffer (bei Kleinanzeigen die Mail „neue Nachricht“, bei Ohne-Makler die Antwort des Vermieters), springt der
@@ -563,6 +569,17 @@ async function load() {
   const data = await api("/api/listings");
   state.listings = data.listings;
   state.statuses = data.statuses;
+}
+
+function currentKey() {
+  const m = location.hash.match(/^#\/anzeige\/(.+)$/);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
+// Zur Trefferliste. Steht die Adresse schon auf „#/“, gibt es kein hashchange, also selbst neu zeichnen.
+function goList() {
+  if (location.hash === "#/") route();
+  else location.hash = "#/";
 }
 
 async function route() {
