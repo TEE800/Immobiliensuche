@@ -88,6 +88,21 @@ kopieren, Anzeige öffnen, abschicken, als „angefragt“ markieren. Den
 Status (Antwort, Besichtigung, Zusage, Absage) und Notizen pflegt man in
 der App.
 
+### Antworten der Vermieter erkennen
+
+In der App oben auf 📬 tippen und E-Mail-Adresse und Passwort des
+Postfachs eingeben (bei web.de und GMX vorher unter Einstellungen →
+POP3/IMAP Abruf den Zugriff erlauben). Bei jedem Suchlauf schaut die
+Mietsuche dann nach neuen Mails: „Neue Nachricht“-Mails von Kleinanzeigen
+und Antworten (Betreff „AW:“/„Re:“), etwa von Vermietern bei Ohne-Makler.
+Passt eine Mail zu einem Treffer (Titel oder Anzeigennummer), springt er
+von „Neu“ oder „Angefragt“ auf „Antwort“ und es kommt eine Push-Nachricht.
+
+Die Mietsuche öffnet das Postfach nur zum Lesen, Mails bleiben ungelesen.
+Andere Mails werden nur anhand von Absender und Betreff übersprungen. Das
+Passwort liegt in `data/postfach_passwort`, unter Windows mit dem
+Windows-Benutzerkonto verschlüsselt. „Verbindung trennen“ löscht es.
+
 ### Telegram-Bot (optional)
 
 1. In Telegram `@BotFather` öffnen, `/newbot` senden und den Token kopieren.
