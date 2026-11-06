@@ -42,6 +42,14 @@ CREATE TABLE IF NOT EXISTS listings (
     updated_at   TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_listings_matches ON listings(matches, first_seen);
+CREATE TABLE IF NOT EXISTS antworten (
+    key        TEXT NOT NULL,
+    uid        TEXT NOT NULL,
+    absender   TEXT NOT NULL,
+    betreff    TEXT NOT NULL,
+    datum      TEXT NOT NULL,
+    PRIMARY KEY (key, uid)
+);
 CREATE TABLE IF NOT EXISTS push_subscriptions (
     endpoint   TEXT PRIMARY KEY,
     data       TEXT NOT NULL,
@@ -144,6 +152,24 @@ class Storage:
 
     def get(self, key: str) -> sqlite3.Row | None:
         return self.db.execute("SELECT * FROM listings WHERE key = ?", (key,)).fetchone()
+
+    def add_reply(self, key: str, mail) -> bool:
+        """Erkannte Antwort im Postfach merken. False, wenn sie schon bekannt war."""
+        sender = f"{mail.sender_name} <{mail.sender}>" if mail.sender_name else mail.sender
+        # Absender und Datum statt Postfach-Nummer, damit ein Umzug des Ordners nichts doppelt meldet.
+        uid = f"{mail.sender}|{mail.date}|{mail.subject}"
+        cur = self.db.execute(
+            "INSERT OR IGNORE INTO antworten (key, uid, absender, betreff, datum) VALUES (?, ?, ?, ?, ?)",
+            (key, uid, sender, mail.subject, mail.date),
+        )
+        self.db.commit()
+        return cur.rowcount > 0
+
+    def replies(self, key: str) -> list[dict]:
+        rows = self.db.execute(
+            "SELECT absender, betreff, datum FROM antworten WHERE key = ? ORDER BY datum DESC", (key,)
+        ).fetchall()
+        return [dict(r) for r in rows]
 
     def add_push_subscription(self, subscription: dict) -> None:
         self.db.execute(

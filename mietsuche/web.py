@@ -6,6 +6,7 @@ import hashlib
 import hmac
 import json
 import secrets
+import threading
 from pathlib import Path
 from urllib.parse import quote
 
@@ -13,7 +14,7 @@ from fastapi import FastAPI, Form, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from pydantic import BaseModel
 
-from . import bilder
+from . import bilder, postfach
 from .auffaellig import warnings as fake_warnings
 from .config import Config
 from .letter import PLACEHOLDERS, load_template, render_letter
@@ -134,6 +135,12 @@ class TemplateUpdate(BaseModel):
     text: str
 
 
+class MailboxLogin(BaseModel):
+    adresse: str
+    passwort: str
+    server: str | None = None
+
+
 class StatusUpdate(BaseModel):
     status: str | None = None
     notes: str | None = None
@@ -218,8 +225,10 @@ def create_app(config: Config) -> FastAPI:
         row = storage.get(key)
         if row is None:
             raise HTTPException(404, "Anzeige nicht gefunden")
-        return row_to_dict(row, full=True, template=load_template(config.letter_file),
+        data = row_to_dict(row, full=True, template=load_template(config.letter_file),
                            pool=market_offers(storage.priced()))
+        data["antworten"] = storage.replies(key)
+        return data
 
     @app.post("/api/listings/{key}")
     def update_listing(key: str, update: StatusUpdate):
@@ -230,8 +239,10 @@ def create_app(config: Config) -> FastAPI:
             storage.set_status(key, update.status or row["status"], update.notes)
         except ValueError as e:
             raise HTTPException(400, str(e))
-        return row_to_dict(storage.get(key), full=True, template=load_template(config.letter_file),
+        data = row_to_dict(storage.get(key), full=True, template=load_template(config.letter_file),
                            pool=market_offers(storage.priced()))
+        data["antworten"] = storage.replies(key)
+        return data
 
     @app.get("/api/vorlage")
     def get_template():
@@ -248,6 +259,26 @@ def create_app(config: Config) -> FastAPI:
         config.letter_file.parent.mkdir(parents=True, exist_ok=True)
         config.letter_file.write_text(update.text.strip() + "\n", encoding="utf-8")
         return {"ok": True}
+
+    @app.get("/api/postfach")
+    def mailbox_status():
+        return postfach.status(data_dir)
+
+    @app.put("/api/postfach")
+    def mailbox_connect(login: MailboxLogin):
+        try:
+            result = postfach.connect(data_dir, login.adresse, login.passwort, login.server)
+        except postfach.MailboxError as e:
+            raise HTTPException(400, str(e))
+        # Gleich einmal nachsehen, statt bis zum nächsten Suchlauf zu warten.
+        notifier = WebPush(storage, private_key, config.push_contact)
+        threading.Thread(target=postfach.check, args=(data_dir, storage, [notifier]), daemon=True).start()
+        return result
+
+    @app.delete("/api/postfach")
+    def mailbox_disconnect():
+        postfach.disconnect(data_dir)
+        return postfach.status(data_dir)
 
     @app.get("/api/push/key")
     def push_key():
