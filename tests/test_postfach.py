@@ -163,3 +163,25 @@ def test_web_connect_and_disconnect(tmp_path, monkeypatch):
     assert client.put("/api/postfach", json={"adresse": "kevin", "passwort": "pw"}).status_code == 400
     assert client.delete("/api/postfach").json()["verbunden"] is False
     assert not (data_dir / "postfach_passwort").exists()
+
+
+class LoginImap:
+    def __init__(self, *args, **kwargs):
+        self.calls = []
+
+    def login(self, user, password):
+        self.calls.append(("login", user))
+        raise postfach.imaplib.IMAP4.error("b'[AUTHENTICATIONFAILED] Authentication failed'")
+
+    def authenticate(self, mechanism, callback):
+        self.calls.append((mechanism, callback(b"")))
+        return "OK", [b""]
+
+
+def test_login_shows_server_reply_and_handles_umlauts(monkeypatch):
+    boxes = []
+    monkeypatch.setattr(postfach.imaplib, "IMAP4_SSL", lambda *a, **k: boxes.append(LoginImap()) or boxes[-1])
+    with pytest.raises(postfach.MailboxError, match=r"Antwort des Servers: \[AUTHENTICATIONFAILED\]"):
+        postfach.open_mailbox("imap.web.de", "kevin@web.de", "geheim")
+    postfach.open_mailbox("imap.web.de", "kevin@web.de", "Bär€")
+    assert boxes[-1].calls == [("PLAIN", "\0kevin@web.de\0Bär€".encode())]

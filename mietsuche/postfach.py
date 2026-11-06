@@ -54,7 +54,8 @@ SERVERS = {
 # Was man beim Anbieter einschalten muss, damit Programme ins Postfach dürfen.
 HINTS = {
     "imap.web.de": "Bei web.de unter Einstellungen → POP3/IMAP Abruf das Häkchen "
-                   "„POP3 und IMAP Zugriff erlauben“ setzen.",
+                   "„POP3 und IMAP Zugriff erlauben“ setzen und speichern. Mit Zwei-Faktor-Anmeldung "
+                   "braucht es ein anwendungsspezifisches Passwort (web.de → Sicherheit).",
     "imap.gmx.net": "Bei GMX unter Einstellungen → POP3/IMAP Abruf das Häkchen "
                     "„POP3 und IMAP Zugriff erlauben“ setzen.",
     "imap.gmail.com": "Gmail braucht ein App-Passwort (Google-Konto → Sicherheit → App-Passwörter).",
@@ -165,11 +166,24 @@ def open_mailbox(server: str, address: str, password: str) -> imaplib.IMAP4_SSL:
     except OSError as e:
         raise MailboxError(f"Der Posteingangsserver {server} ist nicht erreichbar ({e}).")
     try:
-        imap.login(address, password)
-    except imaplib.IMAP4.error:
+        if password.isascii():
+            imap.login(address, password)
+        else:
+            # LOGIN kann nur einfache Zeichen; Umlaute oder € im Passwort gehen so.
+            imap.authenticate("PLAIN", lambda _: f"\0{address}\0{password}".encode())
+    except imaplib.IMAP4.error as e:
         hint = HINTS.get(server, "Beim Anbieter prüfen, ob der Zugriff für Mail-Programme (IMAP) erlaubt ist.")
-        raise MailboxError(f"Anmeldung abgelehnt. Adresse und Passwort prüfen. {hint}")
+        detail = _server_reply(e)
+        raise MailboxError(f"Anmeldung abgelehnt. Adresse und Passwort prüfen. {hint}"
+                           + (f" (Antwort des Servers: {detail})" if detail else ""))
     return imap
+
+
+def _server_reply(error: Exception) -> str:
+    text = str(error)
+    # imaplib liefert z. B. "b'[AUTHENTICATIONFAILED] Authentication failed'"
+    match = re.fullmatch(r"b['\"](.*)['\"]", text)
+    return (match.group(1) if match else text).strip()[:200]
 
 
 @dataclass
