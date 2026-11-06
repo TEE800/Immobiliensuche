@@ -54,8 +54,8 @@ SERVERS = {
 # Was man beim Anbieter einschalten muss, damit Programme ins Postfach dürfen.
 HINTS = {
     "imap.web.de": "Bei web.de unter Einstellungen → POP3/IMAP Abruf das Häkchen "
-                   "„POP3 und IMAP Zugriff erlauben“ setzen und speichern. Mit Zwei-Faktor-Anmeldung "
-                   "braucht es ein anwendungsspezifisches Passwort (web.de → Sicherheit).",
+                   "„POP3 und IMAP Zugriff erlauben“ setzen und speichern. Statt des normalen Passworts "
+                   "ein App-Passwort nehmen: Account verwalten → Login & Sicherheit → App-Passwörter.",
     "imap.gmx.net": "Bei GMX unter Einstellungen → POP3/IMAP Abruf das Häkchen "
                     "„POP3 und IMAP Zugriff erlauben“ setzen.",
     "imap.gmail.com": "Gmail braucht ein App-Passwort (Google-Konto → Sicherheit → App-Passwörter).",
