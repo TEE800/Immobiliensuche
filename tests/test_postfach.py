@@ -185,3 +185,51 @@ def test_login_shows_server_reply_and_handles_umlauts(monkeypatch):
         postfach.open_mailbox("imap.web.de", "kevin@web.de", "geheim")
     postfach.open_mailbox("imap.web.de", "kevin@web.de", "Bär€")
     assert boxes[-1].calls == [("PLAIN", "\0kevin@web.de\0Bär€".encode())]
+
+
+# --- Angebote aus Immomio-Mails ------------------------------------------------
+
+IMMOMIO_OFFER = """<p>Hallo Kevin, wir haben ein neues Angebot für dich:</p>
+<h2>Helle 3-Zimmer-Wohnung mit Balkon</h2>
+<p>Musterweg 5, 22307 Hamburg</p><p>3 Zimmer · 78,5 m² · Gesamtmiete 1.245,50 €</p>
+<a href="https://tenant.immomio.com/de/apply/5bc99f81-a326-4802-883e-8fac456c81c6?utm_source=mail">Jetzt bewerben</a>
+<a href="https://tenant.immomio.com/de/auth/login">Anmelden</a>
+<a href="https://tenant.immomio.com/de/profile/settings?unsubscribe=1">Abmelden</a>"""
+
+
+def test_immomio_offer_becomes_listing(setup):
+    directory, storage, box = setup
+    box.mails = {1: mail("Hamburg-Rahlstedter Baugenossenschaft über Immomio <noreply@mail.immomio.com>",
+                         "Neues Wohnungsangebot für dich", IMMOMIO_OFFER, html=True)}
+    postfach.check(directory, storage, [], CRITERIA)
+    [row] = [r for r in storage.matches() if r["source"] == "genossenschaft"]
+    assert row["url"].startswith("https://tenant.immomio.com/de/apply/5bc99f81")
+    assert (row["rooms"], row["living_area"], row["rent_warm"]) == (3, 78.5, 1245.5)
+    assert row["city"] == "Hamburg"
+    assert row["contact_company"] if "contact_company" in row.keys() else True
+    # Beim nächsten Lauf nicht doppelt
+    box.mails[2] = box.mails[1]
+    postfach.check(directory, storage, [], CRITERIA)
+    assert len([r for r in storage.matches() if r["source"] == "genossenschaft"]) == 1
+
+
+def test_immomio_without_criteria_or_offer_link(setup):
+    directory, storage, box = setup
+    box.mails = {1: mail("Immomio <noreply@immomio.com>", "Neues Wohnungsangebot", IMMOMIO_OFFER, html=True),
+                 2: mail("Immomio <noreply@immomio.com>", "Bitte bestätige deine E-Mail-Adresse",
+                         '<a href="https://tenant.immomio.com/de/auth/register/confirm?x=1">Bestätigen</a>', html=True)}
+    postfach.check(directory, storage, [])  # ohne Kriterien: nur Antworten
+    assert not [r for r in storage.matches() if r["source"] == "genossenschaft"]
+    box.mails = {3: box.mails[2]}
+    postfach.check(directory, storage, [], CRITERIA)
+    assert not [r for r in storage.matches() if r["source"] == "genossenschaft"]
+
+
+def test_immomio_offers_parser_multiple_links():
+    m = postfach.Mail(1, "Immomio", "noreply@immomio.com", "2 neue Angebote", "",
+                      "https://tenant.immomio.com/apply/aaa https://tenant.immomio.com/apply/bbb 3 Zimmer 900 €",
+                      False)
+    offers = postfach.immomio_offers(m)
+    assert [o.external_id for o in offers] == ["mail-aaa", "mail-bbb"]
+    assert offers[0].rooms is None  # mehrere Angebote: Zahlen nicht zuordenbar
+    assert offers[0].contact_company == "Genossenschaft (Immomio)"

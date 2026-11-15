@@ -67,7 +67,13 @@ FIRST_DAYS = 14
 MAX_BODY_BYTES = 3_000_000
 TIMEOUT = 30
 
-PORTAL_DOMAINS = {"kleinanzeigen": "kleinanzeigen.de", "ohne_makler": "ohne-makler.net"}
+PORTAL_DOMAINS = {"kleinanzeigen": "kleinanzeigen.de", "ohne_makler": "ohne-makler.net",
+                  # Genossenschaften schicken Angebote zum Suchprofil über Immomio.
+                  "genossenschaft": "immomio.com"}
+# Links zu einem einzelnen Angebot in Immomio-Mails (nicht Anmeldung, Profil, Abmelden).
+IMMOMIO_LINK = re.compile(r"https://tenant\.immomio\.com/[^\s\"'<>)\]]+")
+IMMOMIO_SKIP = re.compile(r"auth|register|login|profile|profil|settings|unsubscribe|abmelden|"
+                          r"datenschutz|privacy|impressum|imprint|agb|terms|faq|help", re.I)
 # Betreff von Portal-Mails, die eine Nachricht melden (nicht Newsletter oder Suchaufträge).
 PORTAL_MESSAGE = re.compile(r"nachricht|antwort|geantwortet", re.I)
 REPLY_SUBJECT = re.compile(r"^\s*(re|aw|antw|wg|fw|fwd)\s*:", re.I)
@@ -220,7 +226,8 @@ def _text(msg) -> str:
         return "\n".join(plain)
     joined = "\n".join(rich)
     # Links behalten, weil darin oft die Anzeigennummer steht.
-    joined = re.sub(r'href="([^"]*)"', r" \1 ", joined)
+    # Den ganzen Tag ersetzen, sonst entfernt der nächste Schritt die Adresse mit dem Tag.
+    joined = re.sub(r"""<a\b[^>]*?href=["']([^"']*)["'][^>]*>""", r" \1 ", joined, flags=re.I)
     joined = re.sub(r"<(script|style)\b.*?</\1>", " ", joined, flags=re.S | re.I)
     return html.unescape(re.sub(r"<[^>]+>", " ", joined))
 
@@ -340,19 +347,96 @@ def match(mail: Mail, rows) -> str | None:
     return best if best_score >= 2 else None
 
 
+# --- Angebote aus Immomio-Mails -------------------------------------------------
+
+_ROOMS = re.compile(r"(\d+(?:[.,]5)?)\s*(?:-\s*)?(?:Zimmer|Zi\.|Räume|Raum)", re.I)
+_AREA = re.compile(r"(\d+(?:[.,]\d+)?)\s*(?:m²|m2|qm)", re.I)
+_RENT = re.compile(r"(\d{1,3}(?:\.\d{3})*(?:,\d{1,2})?|\d+(?:\.\d{1,2})?)\s*(?:€|EUR)", re.I)
+_PLACE = re.compile(r"\b(2[0-5]\d{3})\s+([A-ZÄÖÜ][\wäöüß-]+)")
+
+
+def _num(text: str) -> float:
+    return float(text.replace(".", "").replace(",", ".")) if "," in text or text.count(".") > 1 \
+        else float(text)
+
+
+def immomio_offers(mail: Mail) -> list:
+    """Wohnungsangebote in einer Mail von Immomio (zum Suchprofil bei einer Genossenschaft).
+
+    Jeder Link zu einem einzelnen Angebot wird ein Treffer. Zimmer, Fläche, Miete
+    und Ort werden nur gelesen, wenn die Mail genau ein Angebot enthält.
+    """
+    from .models import Listing  # hier, damit postfach ohne Modelle importierbar bleibt
+
+    if _portal(mail.sender) != "genossenschaft" or mail.reply:
+        return []
+    links: list[str] = []
+    for link in IMMOMIO_LINK.findall(mail.text or ""):
+        link = html.unescape(link).rstrip(".,;")
+        if not IMMOMIO_SKIP.search(link.split("?")[0]) and link not in links:
+            links.append(link)
+    if not links:
+        return []
+    text = " ".join((mail.text or "").split())
+    company = mail.sender_name.replace("über Immomio", "").replace("via Immomio", "").strip(" -|") or None
+    single = len(links) == 1
+    rooms = _ROOMS.search(text) if single else None
+    area = _AREA.search(text) if single else None
+    rent = _RENT.search(text) if single else None
+    place = _PLACE.search(text) if single else None
+    offers = []
+    for i, link in enumerate(links, 1):
+        ident = re.sub(r"\W+", "-", link.split("?")[0].rstrip("/").rsplit("/", 1)[-1])[:60]
+        offers.append(Listing(
+            source="genossenschaft",
+            external_id=f"mail-{ident}",
+            url=link,
+            title=mail.subject if single else f"{mail.subject} ({i})",
+            zip_code=place.group(1) if place else None,
+            city=place.group(2) if place else None,
+            rooms=_num(rooms.group(1)) if rooms else None,
+            living_area=_num(area.group(1)) if area else None,
+            # Immomio nennt in der Regel die Gesamtmiete.
+            rent_warm=_num(rent.group(1)) if rent else None,
+            contact_company=company if company and company.lower() != "immomio" else "Genossenschaft (Immomio)",
+            description=" ".join(re.sub(r"https?://\S+", " ", text).split())[:3000],
+        ))
+    return offers
+
+
+def _add_offers(mails: list[Mail], storage, criteria) -> int:
+    from .filters import evaluate
+
+    added = 0
+    for mail in mails:
+        for listing in immomio_offers(mail):
+            if storage.seen(listing.key):
+                continue
+            verdict = evaluate(listing, criteria)
+            storage.add(listing, verdict, None)
+            if verdict.matches:
+                added += 1
+                log.info("Angebot aus Immomio-Mail: %s %s", listing.title, listing.url)
+    return added
+
+
 # --- Ein Durchgang --------------------------------------------------------------
 
-def check(directory: Path, storage, notifiers: list) -> int:
-    """Postfach einmal prüfen. Gibt die Zahl erkannter Antworten zurück."""
+def check(directory: Path, storage, notifiers: list, criteria=None) -> int:
+    """Postfach einmal prüfen. Gibt die Zahl erkannter Antworten zurück.
+
+    Mit ``criteria`` werden auch Wohnungsangebote aus Immomio-Mails als Treffer
+    gespeichert; gemeldet werden sie wie alle Treffer beim nächsten Suchlauf.
+    """
     if not _lock.acquire(blocking=False):
         return 0  # läuft schon
     try:
-        return _check(directory, storage, notifiers)
+        return _check(directory, storage, notifiers, criteria)
     finally:
         _lock.release()
 
 
-def _check(directory: Path, storage, notifiers: list) -> int:
+def _check(directory: Path, storage, notifiers: list, criteria=None) -> int:
     settings = load_settings(directory)
     password = load_password(directory) if settings.get("adresse") else None
     if not password:
@@ -375,8 +459,11 @@ def _check(directory: Path, storage, notifiers: list) -> int:
         save_settings(directory, settings)
         return 0
 
+    offers: list[Mail] = []
     for mail in mails:
         key = match(mail, rows)
+        if key is None and criteria is not None:
+            offers.append(mail)
         if key is None or not storage.add_reply(key, mail):
             continue
         found += 1
@@ -390,6 +477,13 @@ def _check(directory: Path, storage, notifiers: list) -> int:
                     notifier.notify_reply(row, mail)
                 except Exception as e:
                     log.warning("Push für Antwort %s fehlgeschlagen: %s", key, e)
+
+    if offers:
+        try:
+            _add_offers(offers, storage, criteria)
+        except Exception:
+            # Ein unerwartetes Mail-Format soll die Antworterkennung nicht aufhalten.
+            log.exception("Immomio-Angebote aus dem Postfach nicht gelesen")
 
     # Neu laden, falls die App die Einstellungen inzwischen geändert hat.
     current = load_settings(directory)
