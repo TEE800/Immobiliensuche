@@ -117,6 +117,9 @@ def row_to_dict(row, full: bool = False, template: str | None = None, pool: list
         "commute": json.loads(row["data"]).get("commute", []),
         "rent_index": json.loads(row["data"]).get("rent_index", {}),
         "offline": json.loads(row["data"]).get("offline_seit"),
+        # Genossenschaften vergeben meist zuerst an Mitglieder, beworben wird über deren Portal.
+        "genossenschaft": stored.get("contact_company") if row["source"] == "genossenschaft" else None,
+        "wbs": row["source"] == "genossenschaft" and "Wohnberechtigungsschein" in (stored.get("description") or ""),
     }
     if pool is not None:
         data["market"] = compare_market({**stored, "key": row["key"]}, pool)

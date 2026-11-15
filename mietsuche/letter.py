@@ -26,6 +26,7 @@ from pathlib import Path
 from .models import Listing
 
 _PORTALS = {
+    "genossenschaft": "Genossenschaft",
     "immoscout": "ImmoScout24",
     "immowelt": "Immowelt",
     "kleinanzeigen": "Kleinanzeigen",

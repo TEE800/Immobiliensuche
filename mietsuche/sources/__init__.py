@@ -47,4 +47,4 @@ class Source(ABC):
         return None
 
 
-from . import kleinanzeigen, ohne_makler  # noqa: E402,F401  (tragen sich in REGISTRY ein)
+from . import genossenschaften, kleinanzeigen, ohne_makler  # noqa: E402,F401  (tragen sich in REGISTRY ein)

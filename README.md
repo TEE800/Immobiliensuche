@@ -128,7 +128,9 @@ python -m mietsuche --serve     # App + dauerhafte Suche
 | Kleinanzeigen | Hamburg, Schenefeld, Halstenbek; Wohnungen und Häuser ab Mindest-Zimmerzahl. Gesuche und Tauschwohnungen werden übersprungen. |
 | Ohne-Makler | Hamburg, Schenefeld, Halstenbek; Wohnungen und Häuser |
 | ImmoScout24, Immowelt | sperren automatische Abrufe (Bot-Schutz), deshalb nicht angebunden |
-| SAGA | Seite ist von Servern außerhalb Deutschlands gesperrt, noch nicht getestet |
+| Genossenschaften (Immomio) | BGFG, VHW, EBV Harburg, Buchdrucker, HARABAU, MGF Farmsen, bds, Reiherstieg, Fuhlsbüttel: öffentliche Angebotsliste, die die Genossenschaften auf ihrer Seite einbinden. Treffer sind als „Genossenschaft · meist nur Mitglieder“ markiert; beworben wird über Immomio, kein Anschreiben. Balkon kommt aus dem Filter „Balkon / Terrasse“ der Liste. |
+| SAGA | Bot-Sperre („Bot check“) auch vom Laptop aus, wird nicht umgangen, deshalb nicht angebunden |
+| Weitere Genossenschaften | altoba, HANSA, Bergedorf-Bille, dhu (Immosolve), WV 1902 (Wohnungshelden), Kaifu, Finkenwärder-Hoffnung (eigene Schnittstellen) noch offen; Walddörfer nur nach Cookie-Zustimmung; viele andere vergeben nur über ein Immomio-Suchprofil ohne öffentliche Liste |
 
 Zuerst wird die Trefferliste gelesen. Nur Anzeigen, die danach noch passen
 können (Ort, Zimmer, grobe Miete), werden einzeln geöffnet, um Nebenkosten,
