@@ -14,7 +14,7 @@ from datetime import datetime, timedelta, timezone
 from . import bilder, postfach
 from .commute import Transitous, commute_times
 from .config import Config, load_config
-from .filters import evaluate, worth_details
+from .filters import evaluate, needs_wbs, worth_details
 from .letter import load_template, render_letter
 from .mietenspiegel import VERSION as RENT_INDEX_VERSION, Wohnlagen, compare as compare_rent
 from .models import Listing
@@ -183,6 +183,20 @@ def _update_images(storage: Storage, sources: dict[str, Source], base) -> None:
         storage.update_data(row["key"], data)
 
 
+def _hide_wbs(storage: Storage) -> None:
+    """Schon gespeicherte neue Treffer, die einen WBS verlangen, aus der Liste nehmen.
+
+    Angefragte usw. bleiben, damit nichts verschwindet, um das man sich schon kümmert.
+    """
+    for row in storage.matches():
+        if row["status"] != "neu":
+            continue
+        data = json.loads(row["data"])
+        if needs_wbs(f"{data.get('title') or ''}\n{data.get('description') or ''}"):
+            storage.unmatch(row["key"])
+            log.info("WBS nötig, ausgeblendet: %s", row["url"])
+
+
 def run_once(config: Config, storage: Storage, sources: list[Source], notifiers: list,
              transit=None, lagen: Wohnlagen | None = None) -> int:
     """Führt einen Suchlauf aus und gibt die Zahl neuer Treffer zurück.
@@ -194,6 +208,7 @@ def run_once(config: Config, storage: Storage, sources: list[Source], notifiers:
         transit = Transitous()
     lagen = lagen or Wohnlagen()
     image_dir = config.database.parent / "bilder"
+    _hide_wbs(storage)
     new_matches = 0
     found: set[str] = set()
     searched: dict[str, Source] = {}

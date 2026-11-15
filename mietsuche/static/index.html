@@ -128,7 +128,7 @@ const LABELS = {
 };
 const CHECK_LABELS = {
   objektart: "Objekt", ort: "Ort", zimmer: "Zimmer", miete: "Miete",
-  haustiere: "Haustiere", aussenbereich: "Garten/Balkon",
+  haustiere: "Haustiere", aussenbereich: "Garten/Balkon", wbs: "WBS",
 };
 const ICON = { ja: "✅", unklar: "❓", nein: "❌" };
 const CLOSED = ["abgesagt", "uninteressant"];
@@ -389,6 +389,7 @@ function renderList() {
     const c = l.checks;
     const chips = ["haustiere", "aussenbereich"].filter((k) => c[k]).map((k) =>
       `<span class="chip">${ICON[c[k].ergebnis]} ${esc(CHECK_LABELS[k])}</span>`).join("")
+      + (l.genossenschaft ? '<span class="chip unklar">🏘 Genossenschaft · meist nur Mitglieder</span>' : "")
       + (l.offline ? '<span class="chip">⛔ Nicht mehr online</span>' : "")
       + (l.auffaellig && l.auffaellig.length ? '<span class="chip unklar">⚠️ Auffällig</span>' : "");
     const del = l.status === "uninteressant"
@@ -440,16 +441,20 @@ async function renderDetail(key) {
     ${l.offline ? `<div class="panel">⛔ <b>Nicht mehr online:</b> Die Anzeige wurde beim Portal gelöscht
       (bemerkt ${esc(new Date(l.offline).toLocaleDateString("de-DE"))}).</div>` : ""}
     ${fakePanel(l)}
+    ${l.genossenschaft ? `<div class="panel">🏘 <b>Genossenschaft:</b> ${esc(l.genossenschaft)}.
+      Freie Wohnungen gehen meist zuerst an Mitglieder; Nicht-Mitglieder kommen nur zum Zug, wenn kein Mitglied
+      sie nimmt. Beworben wird über „Jetzt bewerben“ bei Immomio, dafür brauchst du ein Immomio-Konto.
+      Ein Anschreiben per E-Mail ist hier nicht nötig.</div>` : ""}
 
     <div class="panel steps">
-      <button class="primary" id="copy">1. Anschreiben kopieren</button>
-      <a class="btn" href="${esc(l.url)}" target="_blank" rel="noopener">2. Anzeige öffnen</a>
-      <button id="asked">${l.status === "neu" ? "3. Als angefragt markieren" : "✓ " + LABELS[l.status]}</button>
+      ${l.genossenschaft ? "" : '<button class="primary" id="copy">1. Anschreiben kopieren</button>'}
+      <a class="btn${l.genossenschaft ? " primary" : ""}" href="${esc(l.url)}" target="_blank" rel="noopener">${l.genossenschaft ? "1. Bei Immomio ansehen und bewerben" : "2. Anzeige öffnen"}</a>
+      <button id="asked">${l.status === "neu" ? (l.genossenschaft ? "2." : "3.") + " Als angefragt markieren" : "✓ " + LABELS[l.status]}</button>
       ${l.status === "uninteressant" ? "" : '<button id="delete">🗑 Löschen</button>'}
     </div>
 
-    <div class="panel"><h3>Anschreiben</h3>
-      <textarea id="letter" rows="12">${esc(l.letter)}</textarea></div>
+    ${l.genossenschaft ? "" : `<div class="panel"><h3>Anschreiben</h3>
+      <textarea id="letter" rows="12">${esc(l.letter)}</textarea></div>`}
 
     <div class="panel"><h3>Status</h3>
       <div class="statuses">${state.statuses.map((s) =>
@@ -476,7 +481,7 @@ async function renderDetail(key) {
     await load();
     renderDetail(key);
   };
-  $("#copy").onclick = async () => {
+  if ($("#copy")) $("#copy").onclick = async () => {
     try { await navigator.clipboard.writeText($("#letter").value); toast("Anschreiben kopiert"); }
     catch { $("#letter").select(); document.execCommand("copy"); toast("Anschreiben kopiert"); }
   };

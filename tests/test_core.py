@@ -453,3 +453,35 @@ def test_missing_gallery_is_retried(tmp_path, monkeypatch):
     run_once(config, storage, [source], [FakeNotifier()])
     data = json.loads(storage.get("test:1")["data"])
     assert data["bilder"] == 1 and data["images"] == ["https://img/thumb"]
+
+
+@pytest.mark.parametrize(
+    "text,expected",
+    [
+        ("Wohnberechtigungsschein (WBS) erforderlich.", NEIN),
+        ("Nur mit WBS.", NEIN),
+        ("Bitte nur mit gültigem Wohnberechtigungsschein melden", NEIN),
+        ("Kein WBS nötig.", JA),
+        ("WBS nicht erforderlich", JA),
+        ("Ein WBS wird nicht benötigt.", JA),
+        ("Großer Südbalkon.", JA),
+    ],
+)
+def test_wbs(text, expected):
+    assert result(make(description=f"Großer Südbalkon. {text}"), "wbs") == expected
+
+
+def test_stored_new_wbs_match_is_hidden(tmp_path):
+    (tmp_path / "config.yaml").write_text("datenbank: db.sqlite\n")
+    config = load_config(tmp_path / "config.yaml")
+    storage = Storage(config.database)
+    run_once(config, storage, [FakeSource([make(), make(external_id="2")])], [])
+    # So stand es vor der WBS-Prüfung in der Datenbank.
+    for key in ("test:1", "test:2"):
+        data = json.loads(storage.get(key)["data"])
+        data["description"] += " WBS erforderlich."
+        storage.update_data(key, data)
+    # Schon angefragt: bleibt sichtbar.
+    storage.set_status("test:1", "angefragt")
+    run_once(config, storage, [FakeSource([])], [])
+    assert [r["key"] for r in storage.matches()] == ["test:1"]

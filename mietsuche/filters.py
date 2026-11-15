@@ -174,13 +174,40 @@ def check_location(listing: Listing, criteria: Criteria) -> Check:
     return Check("ort", UNKLAR, "keine Angabe")
 
 
+# --- Wohnberechtigungsschein ------------------------------------------------
+
+_WBS = re.compile(r"\bwbs\b|wohnberechtigungsschein|§\s*5[\s-]*schein")
+# "kein WBS nötig", "ohne WBS", "WBS nicht erforderlich", "WBS-frei" heißen das Gegenteil.
+_WBS_BEFORE_NOT = re.compile(r"(kein(en)?|ohne)\s+(\S+\s+){0,2}$")
+_WBS_AFTER_NOT = re.compile(r"^[\s()a-z-]{0,12}?(nicht\s+(erforderlich|nötig|notwendig|benötigt|vorausgesetzt)|[- ]?frei\b)")
+
+
+def needs_wbs(text: str) -> bool:
+    """Verlangt die Anzeige einen Wohnberechtigungsschein?"""
+    text = text.lower()
+    for m in _WBS.finditer(text):
+        if _WBS_BEFORE_NOT.search(text[max(0, m.start() - 30):m.start()]):
+            continue
+        if _WBS_AFTER_NOT.search(text[m.end():m.end() + 40]):
+            continue
+        return True
+    return False
+
+
+def check_wbs(listing: Listing, criteria: Criteria) -> Check:
+    # Kevin und Fritzi haben keinen WBS, solche Wohnungen sollen gar nicht erscheinen.
+    if needs_wbs(_text(listing)):
+        return Check("wbs", NEIN, "Wohnberechtigungsschein nötig")
+    return Check("wbs", JA, "nicht verlangt")
+
+
 def worth_details(listing: Listing, criteria: Criteria) -> bool:
     """Lohnt es, die Detailseite zu laden?
 
     Geprüft wird nur, was schon in der Trefferliste steht. Die Miete ist dort
     meist kalt, deshalb reicht hier eine Kaltmiete bis zur Warmmiete-Grenze.
     """
-    if any(c(listing, criteria).result == NEIN for c in (check_type, check_location, check_rooms)):
+    if any(c(listing, criteria).result == NEIN for c in (check_type, check_location, check_rooms, check_wbs)):
         return False
     warm, unknown = listing.warm_rent_estimate
     if not unknown:
@@ -188,7 +215,7 @@ def worth_details(listing: Listing, criteria: Criteria) -> bool:
     return listing.rent_cold is None or listing.rent_cold <= criteria.warm_rent_max
 
 
-CHECKS = (check_type, check_location, check_rooms, check_rent, check_pets, check_outdoor)
+CHECKS = (check_type, check_location, check_rooms, check_rent, check_pets, check_outdoor, check_wbs)
 
 
 def evaluate(listing: Listing, criteria: Criteria) -> Verdict:

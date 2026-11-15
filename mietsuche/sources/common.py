@@ -24,11 +24,17 @@ class Fetcher:
         self._last = 0.0
 
     def get(self, url: str) -> httpx.Response:
+        return self._request("GET", url)
+
+    def post(self, url: str, **kwargs) -> httpx.Response:
+        return self._request("POST", url, **kwargs)
+
+    def _request(self, method: str, url: str, **kwargs) -> httpx.Response:
         wait = self._last + random.uniform(*self.pause) - time.monotonic()
         if wait > 0:
             time.sleep(wait)
         try:
-            return self.client.get(url)
+            return self.client.request(method, url, **kwargs)
         finally:
             self._last = time.monotonic()
 
