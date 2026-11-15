@@ -97,6 +97,8 @@ Mietsuche dann nach neuen Mails: „Neue Nachricht“-Mails von Kleinanzeigen
 und Antworten (Betreff „AW:“/„Re:“), etwa von Vermietern bei Ohne-Makler.
 Passt eine Mail zu einem Treffer (Titel oder Anzeigennummer), springt er
 von „Neu“ oder „Angefragt“ auf „Antwort“ und es kommt eine Push-Nachricht.
+Mails von Immomio mit neuen Wohnungsangeboten (Suchprofil bei einer
+Genossenschaft) werden als Genossenschafts-Treffer übernommen.
 
 Die Mietsuche öffnet das Postfach nur zum Lesen, Mails bleiben ungelesen.
 Andere Mails werden nur anhand von Absender und Betreff übersprungen. Das

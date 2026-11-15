@@ -287,7 +287,7 @@ def search_loop(config: Config, sources: list[Source], notifiers_factory, once: 
         found = run_once(config, storage, sources, notifiers)
         log.info("Suchlauf fertig, %d neue Treffer", found)
         try:
-            postfach.check(config.database.parent, storage, notifiers)
+            postfach.check(config.database.parent, storage, notifiers, config.criteria)
         except Exception:
             # Ein Fehler im Postfach soll die Suche nicht anhalten.
             log.exception("Postfach-Prüfung fehlgeschlagen")
