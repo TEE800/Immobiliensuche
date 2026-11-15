@@ -128,7 +128,7 @@ const LABELS = {
 };
 const CHECK_LABELS = {
   objektart: "Objekt", ort: "Ort", zimmer: "Zimmer", miete: "Miete",
-  haustiere: "Haustiere", aussenbereich: "Garten/Balkon",
+  haustiere: "Haustiere", aussenbereich: "Garten/Balkon", wbs: "WBS",
 };
 const ICON = { ja: "✅", unklar: "❓", nein: "❌" };
 const CLOSED = ["abgesagt", "uninteressant"];
@@ -390,7 +390,6 @@ function renderList() {
     const chips = ["haustiere", "aussenbereich"].filter((k) => c[k]).map((k) =>
       `<span class="chip">${ICON[c[k].ergebnis]} ${esc(CHECK_LABELS[k])}</span>`).join("")
       + (l.genossenschaft ? '<span class="chip unklar">🏘 Genossenschaft · meist nur Mitglieder</span>' : "")
-      + (l.wbs ? '<span class="chip unklar">WBS nötig</span>' : "")
       + (l.offline ? '<span class="chip">⛔ Nicht mehr online</span>' : "")
       + (l.auffaellig && l.auffaellig.length ? '<span class="chip unklar">⚠️ Auffällig</span>' : "");
     const del = l.status === "uninteressant"
@@ -445,7 +444,7 @@ async function renderDetail(key) {
     ${l.genossenschaft ? `<div class="panel">🏘 <b>Genossenschaft:</b> ${esc(l.genossenschaft)}.
       Freie Wohnungen gehen meist zuerst an Mitglieder; Nicht-Mitglieder kommen nur zum Zug, wenn kein Mitglied
       sie nimmt. Beworben wird über „Jetzt bewerben“ bei Immomio, dafür brauchst du ein Immomio-Konto.
-      Ein Anschreiben per E-Mail ist hier nicht nötig.${l.wbs ? " <b>Für diese Wohnung ist ein Wohnberechtigungsschein (WBS) nötig.</b>" : ""}</div>` : ""}
+      Ein Anschreiben per E-Mail ist hier nicht nötig.</div>` : ""}
 
     <div class="panel steps">
       ${l.genossenschaft ? "" : '<button class="primary" id="copy">1. Anschreiben kopieren</button>'}

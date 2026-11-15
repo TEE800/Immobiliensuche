@@ -139,6 +139,11 @@ class Storage:
         )
         self.db.commit()
 
+    def unmatch(self, key: str) -> None:
+        """Einen gespeicherten Treffer nachträglich aus der Liste nehmen."""
+        self.db.execute("UPDATE listings SET matches = 0, updated_at = ? WHERE key = ?", (_now(), key))
+        self.db.commit()
+
     def update_url(self, key: str, url: str) -> None:
         """Portale ändern manchmal die Adresse einer Anzeige; dann die neue merken."""
         row = self.db.execute("SELECT url, data FROM listings WHERE key = ?", (key,)).fetchone()
